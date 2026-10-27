@@ -1,0 +1,25 @@
+{
+  "name": "@fluxo/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^7.3.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@fluxo/eslint-config": "workspace:*",
+    "@fluxo/tsconfig": "workspace:*",
+    "eslint": "^8.57.1",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3"
+  }
+}

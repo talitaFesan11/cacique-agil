@@ -1,0 +1,14 @@
+node_modules
+.pnpm-store
+.next
+dist
+build
+coverage
+*.log
+.git
+.env
+.env.local
+.env.*.local
+test-results
+playwright-report
+blob-report

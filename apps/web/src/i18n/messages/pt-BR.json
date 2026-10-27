@@ -1,0 +1,45 @@
+{
+  "common": {
+    "appName": "FluxoPro",
+    "tagline": "Plataforma de Gerenciamento e Fluxo de Projetos",
+    "theme": {
+      "toggle": "Alternar tema claro/escuro",
+      "light": "Claro",
+      "dark": "Escuro"
+    },
+    "language": {
+      "select": "Selecionar idioma",
+      "ptBR": "Português (Brasil)",
+      "en": "English"
+    },
+    "status": {
+      "loading": "Carregando...",
+      "empty": "Nenhum dado encontrado.",
+      "error": "Ocorreu um erro.",
+      "retry": "Tentar novamente"
+    }
+  },
+  "nav": {
+    "dashboard": "Painel Geral",
+    "projects": "Projetos",
+    "tasks": "Tarefas",
+    "kanban": "Kanban",
+    "gantt": "Gantt",
+    "timeline": "Cronograma",
+    "docs": "Documentos",
+    "whiteboards": "Quadros Brancos",
+    "goals": "Metas (OKRs)",
+    "reports": "Relatórios",
+    "settings": "Configurações"
+  },
+  "home": {
+    "welcome": "Bem-vindo ao FluxoPro",
+    "foundationDescription": "A infraestrutura da Fase 0 foi inicializada com sucesso. Monorepo, Docker, PostgreSQL, Express com OpenAPI e Next.js com Material UI estão ativos.",
+    "apiStatusTitle": "Status do Backend e Serviços",
+    "apiStatusBadge": "API Ativa",
+    "checkDocs": "Explorar Documentação OpenAPI (Swagger)",
+    "checkHealth": "Verificar Endpoint /health",
+    "nextPhasesTitle": "Próximas Fases",
+    "nextPhasesDesc": "A Fase 1 implementará a autenticação completa, gestão de workspaces, RBAC e isolamento multi-tenant."
+  }
+}

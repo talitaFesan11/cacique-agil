@@ -1,0 +1,507 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// Enums
+// -------------------------------------------------------------
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum TaskPriority {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum StatusCategory {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum DependencyType {
+  FS // Finish-to-Start
+  SS // Start-to-Start
+  FF // Finish-to-Finish
+  SF // Start-to-Finish
+}
+
+enum GoalStatus {
+  ON_TRACK
+  AT_RISK
+  OFF_TRACK
+  ACHIEVED
+}
+
+enum KeyResultType {
+  NUMBER
+  PERCENT
+  CURRENCY
+  BOOLEAN
+  TASKS
+}
+
+// -------------------------------------------------------------
+// Modelos de Usuário, Workspace e Membros
+// -------------------------------------------------------------
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  avatarUrl     String?
+  passwordHash  String
+  locale        String         @default("pt-BR")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  memberships   Membership[]
+  timeEntries   TimeEntry[]
+  comments      Comment[]
+  notifications Notification[]
+  savedViews    SavedView[]
+
+  @@map("users")
+}
+
+model Workspace {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  memberships  Membership[]
+  projects     Project[]
+  labels       Label[]
+  documents    Document[]
+  whiteboards  Whiteboard[]
+  goals        Goal[]
+  activityLogs ActivityLog[]
+  entityLinks  EntityLink[]
+
+  @@map("workspaces")
+}
+
+model Membership {
+  id          String        @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        WorkspaceRole @default(MEMBER)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+  @@map("memberships")
+}
+
+// -------------------------------------------------------------
+// Modelos de Projetos, Status e Tarefas
+// -------------------------------------------------------------
+
+model Project {
+  id          String           @id @default(cuid())
+  workspaceId String
+  name        String
+  key         String
+  description String?
+  status      ProjectStatus    @default(PLANNING)
+  color       String?
+  startDate   DateTime?
+  dueDate     DateTime?
+  ownerId     String
+  deletedAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  statuses    WorkflowStatus[]
+  tasks       Task[]
+  documents   Document[]
+  whiteboards Whiteboard[]
+  savedViews  SavedView[]
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+model WorkflowStatus {
+  id        String         @id @default(cuid())
+  projectId String
+  name      String
+  category  StatusCategory
+  position  Float
+  wipLimit  Int?
+  color     String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@index([projectId, position])
+  @@map("workflow_statuses")
+}
+
+model Task {
+  id              String           @id @default(cuid())
+  projectId       String
+  number          Int
+  title           String
+  description     Json?
+  statusId        String
+  priority        TaskPriority     @default(NONE)
+  parentId        String?
+  assigneeIds     String[]         @default([])
+  startDate       DateTime?
+  dueDate         DateTime?
+  estimateMinutes Int?
+  progress        Int              @default(0)
+  isMilestone     Boolean          @default(false)
+  position        Float
+  deletedAt       DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status          WorkflowStatus   @relation(fields: [statusId], references: [id], onDelete: Restrict)
+  parent          Task?            @relation("SubTasks", fields: [parentId], references: [id], onDelete: SetNull)
+  subtasks        Task[]           @relation("SubTasks")
+  predecessors    TaskDependency[] @relation("TaskSuccessor")
+  successors      TaskDependency[] @relation("TaskPredecessor")
+  labels          TaskLabel[]
+  checklists      Checklist[]
+  comments        Comment[]
+  attachments     Attachment[]
+  timeEntries     TimeEntry[]
+
+  @@unique([projectId, number])
+  @@index([projectId, statusId, position])
+  @@index([deletedAt])
+  @@map("tasks")
+}
+
+model TaskDependency {
+  id            String         @id @default(cuid())
+  predecessorId String
+  successorId   String
+  type          DependencyType @default(FS)
+  lagDays       Int            @default(0)
+  createdAt     DateTime       @default(now())
+
+  predecessor   Task           @relation("TaskPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successor     Task           @relation("TaskSuccessor", fields: [successorId], references: [id], onDelete: Cascade)
+
+  @@unique([predecessorId, successorId])
+  @@index([predecessorId])
+  @@index([successorId])
+  @@map("task_dependencies")
+}
+
+// -------------------------------------------------------------
+// Etiquetas, Checklists, Comentários, Anexos, Tempo
+// -------------------------------------------------------------
+
+model Label {
+  id          String      @id @default(cuid())
+  workspaceId String
+  name        String
+  color       String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks       TaskLabel[]
+
+  @@unique([workspaceId, name])
+  @@map("labels")
+}
+
+model TaskLabel {
+  taskId    String
+  labelId   String
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label     Label    @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
+  @@map("task_labels")
+}
+
+model Checklist {
+  id        String          @id @default(cuid())
+  taskId    String
+  title     String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  task      Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  items     ChecklistItem[]
+
+  @@index([taskId])
+  @@map("checklists")
+}
+
+model ChecklistItem {
+  id          String    @id @default(cuid())
+  checklistId String
+  text        String
+  done        Boolean   @default(false)
+  position    Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@index([checklistId, position])
+  @@map("checklist_items")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  taskId    String?
+  docId     String?
+  authorId  String
+  body      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([docId])
+  @@map("comments")
+}
+
+model Attachment {
+  id         String   @id @default(cuid())
+  taskId     String
+  fileName   String
+  mimeType   String
+  size       Int
+  storageKey String
+  createdAt  DateTime @default(now())
+
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("attachments")
+}
+
+model TimeEntry {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  startedAt DateTime
+  minutes   Int
+  note      String?
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+  @@map("time_entries")
+}
+
+// -------------------------------------------------------------
+// Documentos e Quadros Brancos (Colaborativos Yjs)
+// -------------------------------------------------------------
+
+model Document {
+  id          String     @id @default(cuid())
+  workspaceId String
+  projectId   String?
+  parentId    String?
+  title       String
+  icon        String?
+  yjsState    Bytes?
+  contentJson Json?
+  deletedAt   DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project     Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parent      Document?  @relation("DocHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Document[] @relation("DocHierarchy")
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([deletedAt])
+  @@map("documents")
+}
+
+model Whiteboard {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  projectId    String?
+  title        String
+  yjsState     Bytes?
+  thumbnailUrl String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project      Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@map("whiteboards")
+}
+
+// -------------------------------------------------------------
+// Metas (OKRs) e Resultados-Chave
+// -------------------------------------------------------------
+
+model Goal {
+  id           String      @id @default(cuid())
+  workspaceId  String
+  title        String
+  description  String?
+  ownerId      String
+  periodStart  DateTime
+  periodEnd    DateTime
+  status       GoalStatus  @default(ON_TRACK)
+  parentGoalId String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  workspace    Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parentGoal   Goal?       @relation("GoalHierarchy", fields: [parentGoalId], references: [id], onDelete: SetNull)
+  subGoals     Goal[]      @relation("GoalHierarchy")
+  keyResults   KeyResult[]
+
+  @@index([workspaceId])
+  @@map("goals")
+}
+
+model KeyResult {
+  id            String             @id @default(cuid())
+  goalId        String
+  title         String
+  type          KeyResultType
+  startValue    Float              @default(0)
+  targetValue   Float
+  currentValue  Float              @default(0)
+  linkedTaskIds String[]           @default([])
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  goal          Goal               @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  checkIns      KeyResultCheckIn[]
+
+  @@index([goalId])
+  @@map("key_results")
+}
+
+model KeyResultCheckIn {
+  id          String    @id @default(cuid())
+  keyResultId String
+  value       Float
+  note        String?
+  createdAt   DateTime  @default(now())
+
+  keyResult   KeyResult @relation(fields: [keyResultId], references: [id], onDelete: Cascade)
+
+  @@index([keyResultId])
+  @@map("key_result_check_ins")
+}
+
+// -------------------------------------------------------------
+// Notificações, Auditoria, Visões Salvas e Vínculos
+// -------------------------------------------------------------
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id          String    @id @default(cuid())
+  workspaceId String
+  actorId     String
+  entity      String
+  entityId    String
+  action      String
+  diff        Json?
+  createdAt   DateTime  @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([entity, entityId])
+  @@map("activity_logs")
+}
+
+model SavedView {
+  id        String   @id @default(cuid())
+  projectId String
+  ownerId   String
+  type      String
+  name      String
+  config    Json
+  shared    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, ownerId])
+  @@map("saved_views")
+}
+
+model EntityLink {
+  id          String    @id @default(cuid())
+  workspaceId String
+  fromType    String
+  fromId      String
+  toType      String
+  toId        String
+  createdAt   DateTime  @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([fromType, fromId])
+  @@index([toType, toId])
+  @@index([workspaceId])
+  @@map("entity_links")
+}

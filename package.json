@@ -1,0 +1,45 @@
+{
+  "name": "fluxopro-root",
+  "private": true,
+  "packageManager": "pnpm@11.22.0",
+  "scripts": {
+    "dev": "pnpm --filter \"@fluxo/*\" --parallel dev",
+    "dev:api": "pnpm --filter @fluxo/api dev",
+    "dev:web": "pnpm --filter @fluxo/web dev",
+    "build": "pnpm --filter @fluxo/shared build && pnpm --filter @fluxo/api build && pnpm --filter @fluxo/web build",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yml}\"",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter @fluxo/web test:e2e",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "docker:up": "docker compose up -d",
+    "docker:dev": "docker compose up --build",
+    "docker:dev:down": "docker compose down",
+    "docker:prod:build": "docker compose -f docker-compose.prod.yml build",
+    "docker:prod:up": "docker compose -f docker-compose.prod.yml up -d",
+    "docker:prod:logs": "docker compose -f docker-compose.prod.yml logs -f",
+    "prepare": "husky || true"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.4.1"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.7.1",
+    "@commitlint/config-conventional": "^19.7.1",
+    "@types/node": "^22.13.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "playwright": "^1.64.1",
+    "prettier": "^3.5.1",
+    "prisma": "^6.4.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

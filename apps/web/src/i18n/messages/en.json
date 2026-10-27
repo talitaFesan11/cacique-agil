@@ -1,0 +1,45 @@
+{
+  "common": {
+    "appName": "FluxoPro",
+    "tagline": "Project Management & Workflow Platform",
+    "theme": {
+      "toggle": "Toggle light/dark theme",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "language": {
+      "select": "Select language",
+      "ptBR": "Português (Brasil)",
+      "en": "English"
+    },
+    "status": {
+      "loading": "Loading...",
+      "empty": "No data found.",
+      "error": "An error occurred.",
+      "retry": "Try again"
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "tasks": "Tasks",
+    "kanban": "Kanban",
+    "gantt": "Gantt",
+    "timeline": "Timeline",
+    "docs": "Documents",
+    "whiteboards": "Whiteboards",
+    "goals": "Goals (OKRs)",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  "home": {
+    "welcome": "Welcome to FluxoPro",
+    "foundationDescription": "Phase 0 infrastructure has been initialized successfully. Monorepo, Docker, PostgreSQL, Express with OpenAPI, and Next.js with Material UI are active.",
+    "apiStatusTitle": "Backend & Services Status",
+    "apiStatusBadge": "API Active",
+    "checkDocs": "Explore OpenAPI Docs (Swagger)",
+    "checkHealth": "Check /health Endpoint",
+    "nextPhasesTitle": "Next Phases",
+    "nextPhasesDesc": "Phase 1 will implement full authentication, workspace management, RBAC, and multi-tenant isolation."
+  }
+}
