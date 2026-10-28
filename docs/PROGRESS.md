@@ -22,10 +22,26 @@ Este documento registra a evolução incremental do projeto **Cacique Agil**, co
     - [`phase3-kanban-drawer.png`](./phases/fase-03/screenshots/phase3-kanban-drawer.png)
     - [`phase3-kanban-swimlanes.png`](./phases/fase-03/screenshots/phase3-kanban-swimlanes.png)
     - [`phase3-realtime-presence.png`](./phases/fase-03/screenshots/phase3-realtime-presence.png)
+- **Fase 04 — Cronograma (Gantt), CPM, Dependências e Calendário**:
+  - [Implementation Plan (`docs/phases/fase-04/implementation_plan.md`)](./phases/fase-04/implementation_plan.md)
+  - [Walkthrough & Validação (`docs/phases/fase-04/walkthrough.md`)](./phases/fase-04/walkthrough.md)
+  - Screenshots de Validação E2E (`docs/phases/fase-04/screenshots/`):
+    - [`phase4-gantt-cpm.png`](./phases/fase-04/screenshots/phase4-gantt-cpm.png) (Gantt em Modo Claro com Caminho Crítico e Rótulos Nitídos)
+    - [`phase4-gantt-dark.png`](./phases/fase-04/screenshots/phase4-gantt-dark.png) (Gantt em Modo Escuro de Alto Contraste)
+    - [`phase4-gantt-quarter.png`](./phases/fase-04/screenshots/phase4-gantt-quarter.png) (Gantt na Escala de Trimestre com Divisórias e Meses Nítidos e sem Sobreposição)
+    - [`phase4-gantt-table-collapsed.png`](./phases/fase-04/screenshots/phase4-gantt-table-collapsed.png) (Gantt Expandido com Tabela Lateral Oculta e Botão Flutuante de Restauração)
+    - [`phase4-gantt-fullscreen.png`](./phases/fase-04/screenshots/phase4-gantt-fullscreen.png) (Gantt em Modo de Tela Cheia / Fullscreen)
+    - [`phase4-gantt-exported.png`](./phases/fase-04/screenshots/phase4-gantt-exported.png) (Imagem PNG Exportada com Régua de Meses/Dias, Grade Completa e Setas)
+    - [`phase4-home-light.png`](./phases/fase-04/screenshots/phase4-home-light.png) (Home & Cabeçalhos em Modo Claro)
+    - [`phase4-home-dark.png`](./phases/fase-04/screenshots/phase4-home-dark.png) (Home & Cabeçalhos em Modo Escuro com Contraste Branco Puro)
+    - [`phase4-calendar.png`](./phases/fase-04/screenshots/phase4-calendar.png)
+    - [`phase4-workload.png`](./phases/fase-04/screenshots/phase4-workload.png)
+    - [`phase4-dependencies-drawer.png`](./phases/fase-04/screenshots/phase4-dependencies-drawer.png)
 - **Architecture Decision Records (`docs/decisions/`)**:
   - [ADR 001 — Tokens de Autenticação e Hashing de Senhas](./decisions/001-auth-tokens-and-password-hashing.md)
   - [ADR 002 — Hierarquia de Subtarefas, Ordenação e Visões Salvas (Fase 2)](./decisions/002-phase2-tasks-hierarchy-and-saved-views.md)
   - [ADR 003 — Posicionamento Fracionário, Alertas WIP e Sincronização em Tempo Real (Fase 3)](./decisions/003-phase3-kanban-and-realtime.md)
+  - [ADR 004 — Gráfico Gantt Nativo SVG/CSS, CPM, Detecção de Ciclos em DAG e Visão de Calendário (Fase 4)](./decisions/004-phase4-gantt-cpm-and-calendar.md)
 
 ---
 
@@ -103,11 +119,74 @@ Este documento registra a evolução incremental do projeto **Cacique Agil**, co
 
 ---
 
+
+### Fase 04 — Cronograma (Gantt), CPM, Dependências e Calendário (Concluída)
+1. **Schemas Compartilhados (`packages/shared`)**:
+   - `schemas/dependency.ts`: Enum `DependencyType` (`FS`, `SS`, `FF`, `SF`) e schemas Zod para criação, listagem e remoção de vínculos com `lagDays`.
+   - `schemas/baseline.ts`: Schemas Zod para linhas de base imutáveis (`ProjectBaselineDto`, `TaskBaselineItemDto`, `CreateBaselineRequest`).
+   - `schemas/gantt.ts`: Schemas Zod para dados completos do Gantt (`GanttProjectDataDto`, `GanttTaskItemDto`, `GanttZoomLevel`) e motor de reagendamento automático (`AutoRescheduleRequest`, `AutoRescheduleResult`).
+   - `schemas/workload.ts`: Schemas Zod para sumário de carga de trabalho e capacidade da equipe (`ProjectWorkloadSummaryDto`, `MemberWorkloadSummaryDto`).
+   - **Algoritmos Puros**:
+     - `utils/cycle-detector.ts`: Algoritmo DFS com coloração de vértices para detecção estrita de ciclos no DAG de dependências com cadeia descritiva.
+     - `utils/cpm.ts`: Algoritmo determinístico de CPM (Critical Path Method) com Passe Direto, Passe Reverso, cálculo de folga total/livre e identificação do caminho crítico.
+     - `utils/date-math.ts`: Matemática de datas em TypeScript estrito (`addDays`, `diffDays`, `startOfDay`, `parseDate`, `toIsoDate`, `isWeekend`).
+2. **Banco de Dados & Prisma**:
+   - Modelos `ProjectBaseline` e `TaskBaselineItem` adicionados em `prisma/schema.prisma` e vinculados a `Project` e `Task`.
+   - Migration aplicada: `prisma/migrations/20261028140100_phase4_baselines/migration.sql`.
+   - Seed `prisma/seed.ts` atualizado com tarefas `FLX-1` até `FLX-9`, dependências sequenciais com folgas, marcos (`FLX-9`) e snapshot de baseline inicial.
+3. **Backend (`apps/api`)**:
+   - **Módulo de Tarefas & Dependências (`apps/api/src/modules/tasks/`)**:
+     - `POST /api/v1/projects/:id/dependencies`: Cria dependência com validação de ciclo (HTTP 422 Unprocessable Entity com cadeia de nós em caso de ciclo).
+     - `DELETE /api/v1/projects/:id/dependencies/:dependencyId`: Remove vínculo de dependência.
+     - `GET /api/v1/projects/:id/dependencies`: Lista todas as dependências com metadados de predecessor e sucessor.
+   - **Módulo de Linhas de Base (`apps/api/src/modules/tasks/`)**:
+     - `GET /api/v1/projects/:id/baselines`: Lista snapshots de linha de base.
+     - `POST /api/v1/projects/:id/baselines`: Cria snapshot imutável das tarefas do projeto.
+     - `GET /api/v1/projects/:id/baselines/:baselineId`: Detalhes e itens do snapshot.
+   - **Módulo de Projetos (`apps/api/src/modules/projects/`)**:
+     - `GET /api/v1/projects/:id/gantt`: Dados de tarefas, dependências, cálculo de CPM em tempo de execução e comparação com baseline (`varianceDays`).
+     - `POST /api/v1/projects/:id/auto-reschedule`: Reagendamento em cascata topológico respeitando tipos de precedência e `lagDays`.
+     - `GET /api/v1/projects/:id/workload`: Sumário de horas estimadas vs. capacidade diária dos membros com detecção de sobrealocação.
+   - **Documentação OpenAPI**: Todos os novos endpoints devidamente documentados em `apps/api/src/openapi/openapi.ts`.
+4. **Frontend (`apps/web`)**:
+   - **Gráfico Gantt Nativo SVG/CSS (`apps/web/src/components/gantt/`)**:
+     - Sem bibliotecas externas comerciais pagas.
+     - Painéis sincronizados de tabela e linha do tempo com zoom (Dia, Semana, Mês, Trimestre).
+     - **Escala de Tempo e Calendário Inteligentes (Sem Sobreposição)**:
+       - No modo **Trimestre**, a régua superior agrupa os Trimestres (`T1`, `T2`, `T3`, `T4` com ano) e a inferior exibe os Meses completos (`Janeiro`, `Fevereiro`...) com divisórias limpas no início de cada mês e linhas sutis para semanas, sem sobreposição de dias diários ou caracteres colados.
+       - No modo **Mês**, a régua superior exibe o Mês e a inferior agrupa as Semanas (`01 - 07 Out`, `08 - 14 Out`...), espaçando a grade uniformemente.
+       - Nos modos **Dia** e **Semana**, a régua e a grade diária mantêm divisórias confortáveis de 24px a 40px com destaque para fins de semana.
+     - **Tabela Lateral Flexível, Colapsável e Modo Tela Cheia**:
+       - Opção para **ocultar a tabela lateral esquerda** pelo botão "Ocultar Tabela" / "Exibir Tabela" na barra de ferramentas ou pelo botão recolher (`ChevronLeftIcon`) no cabeçalho da tabela, liberando 100% da largura útil da tela para a linha do tempo do Gantt.
+       - Alça flutuante com botão (`ChevronRightIcon`) na margem esquerda da linha do tempo quando a tabela estiver recolhida para rápida restauração.
+       - **Modo Tela Cheia (Fullscreen)** com alternador na barra de ferramentas e suporte a saída rápida pela tecla `Escape`.
+       - Tabela de tarefas com colunas flexíveis (`ID`: 75px, `Tarefa`: `flex: 1` dinâmico, `Duração`: 60px, `%`: 50px).
+     - Conectores de dependência com curvas ortogonais SVG e marcadores de seta.
+     - Alternância de Caminho Crítico (CPM) em vermelho com duração total calculada.
+     - Projeção comparativa de linhas de base com variância em dias.
+     - Botão para reagendamento automático em cascata.
+     - **Aprimoramento de Contraste e Tipografia**: Rótulos com cores sólidas (`#ffffff` e drop shadow) sobre barras coloridas no Modo Claro e Escuro, e projeção de rótulo lateral em `text.primary` para barras estreitas (`< 120px`) e marcos (`isMilestone`), garantindo 100% de legibilidade em ambos os modos de tema.
+   - **Tema Claro / Escuro Unificado & Tipografia**:
+     - Configuração estrita de `MuiTypography: { defaultProps: { color: 'text.primary' } }` e `MuiCssBaseline` para evitar herança de fontes pretas ou apagadas no Modo Escuro.
+     - Cabeçalho de boas-vindas ("Bem-vindo"), títulos de cartões e itens do menu com contraste branco puro (`#F8FAFC`) no modo escuro e preto grafite (`#0F172A`) no modo claro.
+   - **Visão de Calendário (`apps/web/src/components/calendar/TaskCalendarView.tsx`)**:
+     - Modos Mês e Semana com chips coloridos por status e ícones de marco.
+     - Abertura de detalhes da tarefa ao clicar no chip.
+   - **Carga de Trabalho da Equipe (`apps/web/src/components/timeline/WorkloadView.tsx`)**:
+     - Medidores de capacidade e alertas de sobrealocação por membro da equipe.
+   - **Drawer de Detalhes da Tarefa (`apps/web/src/components/tasks/TaskDetailDrawer.tsx`)**:
+     - Seção de dependências com listagem de predecessores/sucessores e exclusão de vínculos.
+   - **Página do Projeto (`apps/web/src/app/[locale]/projects/[projectId]/page.tsx`)**:
+     - Abas Gantt, Calendário e Carga de Trabalho integradas com persistência via query string `?view=`.
+5. **Testes Automatizados**:
+   - Backend: `dependencies-cycle.test.ts` (5 testes), `cpm-calculation.test.ts` (3 testes), `baselines.test.ts` (1 teste).
+   - Frontend: `TaskGanttView.test.tsx` (5 testes), `TaskCalendarView.test.tsx` (4 testes).
+   - E2E Playwright: `phase4-gantt-calendar.spec.ts` (Gantt, CPM, Zoom, Dependências, Linha de Base, Calendário Mês/Semana, Carga de Trabalho e Drawer).
+
+---
+
 ## 2. O que ficou pendente (Próximas Fases do Roadmap)
 
-- **Fase 04 — Cronograma (Gantt) e Calendário:**
-  - Barras horizontais proporcionais a `startDate`/`dueDate`, marcos (`isMilestone`) e dependências (`BLOCKS`/`BLOCKED_BY`) com detecção de ciclo em grafo dirigido no backend.
-  - Visão mensal/semanal de Calendário por `dueDate`.
 - **Fase 05 — Documentos Colaborativos (Wiki):**
   - Árvore hierárquica de páginas (`Document`), editor rico Tiptap, histórico de versões (`DocumentVersion`) e vínculo entre trechos e tarefas.
 - **Fase 06 — Quadros Brancos (Canvas):**
@@ -119,13 +198,17 @@ Este documento registra a evolução incremental do projeto **Cacique Agil**, co
 
 ---
 
-## 3. Decisões Tomadas na Fase 02
+## 3. Decisões Tomadas nas Fases
 
 1. **Validação estrita de profundidade de subtarefas no servidor (`ADR 002`)**: A regra de até 3 níveis de subtarefas vive exclusivamente no serviço de backend (`tasks.service.ts`), enquanto o frontend reflete a restrição na UX (ocultando o botão de adicionar subtarefa no nível 3).
 2. **Soft Delete de tarefas (`deletedAt`)**: Exclusões individuais (`DELETE /api/v1/tasks/:id`) e em lote (`POST /api/v1/tasks/bulk`) preenchem `deletedAt` em vez de remover fisicamente o registro, preservando integridade de auditoria e histórico.
 3. **Build prévio de `@fluxo/shared` em `typecheck` e `test`**: Como `@fluxo/shared` exporta tipos compilados em `dist/index.d.ts` (não versionados no Git), os scripts `pnpm typecheck` e `pnpm test` na raiz e o workflow `.github/workflows/ci.yml` executam `pnpm --filter @fluxo/shared build` antes da checagem de tipos e testes.
 4. **Roteamento i18n explícito (`localePrefix: 'always'`) com Middleware**: Adicionado `apps/web/src/middleware.ts` e `apps/web/src/app/page.tsx` para redirecionar `/` automaticamente para `/pt-BR` sem quebrar rotas prefixadas (`/${locale}/...`).
 5. **Renomeação do projeto para `Cacique Agil`**: Substituído o nome provisório `FluxoPro` por `Cacique Agil` nos dicionários `pt-BR`/`en`, títulos HTML, OpenAPI, templates de e-mail, seed e documentação.
+
+6. **Gráfico Gantt Nativo sem Bibliotecas Pagas (`ADR 004`)**: Arquitetura em SVG + CSS com conectores de arestas ortogonais Bézier e marcadores de seta nativos, sem bibliotecas pagas de terceiros.
+7. **Detecção de Ciclos no DAG com HTTP 422 (`ADR 004`)**: Validação DFS de arestas no backend que bloqueia qualquer ciclo em grafo direcionado e retorna a rota cíclica detalhada para a UX.
+8. **Motor de Reagendamento em Cascata e CPM Determinístico (`ADR 004`)**: Implementação em `@fluxo/shared` com ordenação topológica e passes direto/reverso para recalcular datas e destacar o caminho crítico.
 
 ---
 

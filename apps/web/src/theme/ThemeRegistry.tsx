@@ -30,6 +30,12 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
     }
   }, []);
 
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.colorScheme = mode;
+    }
+  }, [mode]);
+
   const colorMode = useMemo(
     () => ({
       mode,

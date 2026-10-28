@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { createHttpError } from '../../middleware/auth.middleware.js';
 import { projectsService } from './projects.service.js';
+import { ganttService } from './gantt.service.js';
+import { workloadService } from './workload.service.js';
 
 export const projectsController = {
   async list(req: Request, res: Response, next: NextFunction) {
@@ -206,6 +208,33 @@ export const projectsController = {
         String(req.params.labelId),
       );
       return res.status(200).json(result);
+    } catch (error) {
+      return next(error);
+    }
+  },
+
+  async getGantt(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await ganttService.getGanttData(
+        req.user!.id,
+        String(req.params.id),
+        typeof req.query.baselineId === 'string' ? req.query.baselineId : undefined,
+      );
+      return res.status(200).json({ data });
+    } catch (error) {
+      return next(error);
+    }
+  },
+
+  async getWorkload(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await workloadService.getProjectWorkload(
+        req.user!.id,
+        String(req.params.id),
+        typeof req.query.startDate === 'string' ? req.query.startDate : undefined,
+        typeof req.query.endDate === 'string' ? req.query.endDate : undefined,
+      );
+      return res.status(200).json({ data });
     } catch (error) {
       return next(error);
     }

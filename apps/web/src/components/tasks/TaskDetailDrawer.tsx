@@ -36,7 +36,8 @@ import {
   WorkflowStatusDto,
   WorkspaceMemberDto,
 } from '@fluxo/shared';
-import { projectsApi, tasksApi } from '@/lib/api-client';
+import LinkIcon from '@mui/icons-material/Link';
+import { projectsApi, tasksApi, ganttApi } from '@/lib/api-client';
 
 interface TaskDetailDrawerProps {
   taskId: string | null;
@@ -101,6 +102,15 @@ export function TaskDetailDrawer({
     queryFn: () => tasksApi.getById(taskId!),
     enabled: Boolean(taskId),
   });
+
+  const { data: dependencies = [] } = useQuery({
+    queryKey: ['dependencies', projectId],
+    queryFn: () => ganttApi.getDependencies(projectId),
+    enabled: Boolean(taskId && projectId),
+  });
+
+  const predecessors = dependencies.filter((d) => d.successorId === taskId);
+  const successors = dependencies.filter((d) => d.predecessorId === taskId);
 
   const [title, setTitle] = useState('');
   const [descriptionText, setDescriptionText] = useState('');
@@ -317,6 +327,18 @@ export function TaskDetailDrawer({
       onTaskChanged();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : tCommon('status.error'));
+    }
+  };
+
+  const handleDeleteDependency = async (depId: string) => {
+    if (!canWrite) return;
+    try {
+      await ganttApi.deleteDependency(projectId, depId);
+      await queryClient.invalidateQueries({ queryKey: ['dependencies', projectId] });
+      await queryClient.invalidateQueries({ queryKey: ['gantt', projectId] });
+      onTaskChanged();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Erro ao remover dependência');
     }
   };
 
@@ -861,6 +883,66 @@ export function TaskDetailDrawer({
                   >
                     {t('addChecklistButton')}
                   </Button>
+                </Box>
+              )}
+            </Box>
+
+            <Divider />
+
+            {/* Seção: Dependências (Fase 4) */}
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                <LinkIcon fontSize="small" color="primary" />
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  {t('sectionDependencies')}
+                </Typography>
+              </Box>
+
+              {predecessors.length === 0 && successors.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  {t('noDependencies')}
+                </Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  {predecessors.length > 0 && (
+                    <Box>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                        {t('predecessorsTitle')}
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
+                        {predecessors.map((dep) => (
+                          <Chip
+                            key={dep.id}
+                            size="small"
+                            label={`${dep.predecessor?.key || 'Pred'} (${dep.type}${dep.lagDays ? ` +${dep.lagDays}d` : ''})`}
+                            onDelete={canWrite ? () => handleDeleteDependency(dep.id) : undefined}
+                            color="default"
+                            variant="outlined"
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+
+                  {successors.length > 0 && (
+                    <Box>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                        {t('successorsTitle')}
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
+                        {successors.map((dep) => (
+                          <Chip
+                            key={dep.id}
+                            size="small"
+                            label={`${dep.successor?.key || 'Succ'} (${dep.type}${dep.lagDays ? ` +${dep.lagDays}d` : ''})`}
+                            onDelete={canWrite ? () => handleDeleteDependency(dep.id) : undefined}
+                            color="primary"
+                            variant="outlined"
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
               )}
             </Box>

@@ -1,31 +1,38 @@
 import {
   AttachmentDto,
   AuthResponse,
+  AutoRescheduleResult,
   BulkTasksActionRequest,
   ChecklistDto,
   ChecklistItemDto,
   CommentDto,
   CreateAttachmentRequest,
+  CreateBaselineRequest,
   CreateChecklistItemRequest,
   CreateChecklistRequest,
   CreateCommentRequest,
   CreateLabelRequest,
   CreateProjectRequest,
   CreateSavedViewRequest,
+  CreateTaskDependencyRequest,
   CreateTaskRequest,
   CreateWorkflowStatusRequest,
   CreateWorkspaceInviteRequest,
   CreateWorkspaceRequest,
   ForgotPasswordRequest,
+  GanttProjectDataDto,
   LabelDto,
   LoginRequest,
   MeResponse,
   MessageResponse,
   MoveTaskRequest,
+  ProjectBaselineDto,
   ProjectDto,
+  ProjectWorkloadSummaryDto,
   RegisterRequest,
   ResetPasswordRequest,
   SavedViewDto,
+  TaskDependencyDto,
   TaskDto,
   TaskFilterQuery,
   UpdateChecklistItemRequest,
@@ -542,6 +549,100 @@ export const tasksApi = {
   deleteAttachment(attachmentId: string) {
     return apiRequest<MessageResponse>(
       `/attachments/${encodeURIComponent(attachmentId)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+  },
+};
+
+export const ganttApi = {
+  async getGantt(projectId: string, baselineId?: string) {
+    const query = baselineId ? `?baselineId=${encodeURIComponent(baselineId)}` : '';
+    const res = await apiRequest<{ data: GanttProjectDataDto }>(
+      `/projects/${encodeURIComponent(projectId)}/gantt${query}`,
+    );
+    return res.data;
+  },
+
+  async getWorkload(projectId: string, startDate?: string, endDate?: string) {
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    const query = params.toString() ? `?${params.toString()}` : '';
+
+    const res = await apiRequest<{ data: ProjectWorkloadSummaryDto }>(
+      `/projects/${encodeURIComponent(projectId)}/workload${query}`,
+    );
+    return res.data;
+  },
+
+  async getDependencies(projectId: string) {
+    const res = await apiRequest<{ data: TaskDependencyDto[] }>(
+      `/projects/${encodeURIComponent(projectId)}/dependencies`,
+    );
+    return res.data;
+  },
+
+  async createDependency(projectId: string, input: CreateTaskDependencyRequest) {
+    const res = await apiRequest<{ data: TaskDependencyDto }>(
+      `/projects/${encodeURIComponent(projectId)}/dependencies`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
+    return res.data;
+  },
+
+  async deleteDependency(projectId: string, dependencyId: string) {
+    return apiRequest<void>(
+      `/projects/${encodeURIComponent(projectId)}/dependencies/${encodeURIComponent(dependencyId)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+  },
+
+  async autoReschedule(projectId: string) {
+    const res = await apiRequest<{ data: AutoRescheduleResult }>(
+      `/projects/${encodeURIComponent(projectId)}/auto-reschedule`,
+      {
+        method: 'POST',
+        body: JSON.stringify({}),
+      },
+    );
+    return res.data;
+  },
+
+  async getBaselines(projectId: string) {
+    const res = await apiRequest<{ data: ProjectBaselineDto[] }>(
+      `/projects/${encodeURIComponent(projectId)}/baselines`,
+    );
+    return res.data;
+  },
+
+  async getBaseline(projectId: string, baselineId: string) {
+    const res = await apiRequest<{ data: ProjectBaselineDto }>(
+      `/projects/${encodeURIComponent(projectId)}/baselines/${encodeURIComponent(baselineId)}`,
+    );
+    return res.data;
+  },
+
+  async createBaseline(projectId: string, input: CreateBaselineRequest) {
+    const res = await apiRequest<{ data: ProjectBaselineDto }>(
+      `/projects/${encodeURIComponent(projectId)}/baselines`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
+    return res.data;
+  },
+
+  async deleteBaseline(projectId: string, baselineId: string) {
+    return apiRequest<void>(
+      `/projects/${encodeURIComponent(projectId)}/baselines/${encodeURIComponent(baselineId)}`,
       {
         method: 'DELETE',
       },

@@ -50,6 +50,10 @@ projectsRouter.patch(
 
 projectsRouter.delete('/projects/:id', requireAuth, projectsController.remove);
 
+// Gantt & Workload (Fase 4)
+projectsRouter.get('/projects/:id/gantt', requireAuth, projectsController.getGantt);
+projectsRouter.get('/projects/:id/workload', requireAuth, projectsController.getWorkload);
+
 // Status do fluxo do projeto (WorkflowStatuses)
 projectsRouter.get('/projects/:id/statuses', requireAuth, projectsController.listStatuses);
 

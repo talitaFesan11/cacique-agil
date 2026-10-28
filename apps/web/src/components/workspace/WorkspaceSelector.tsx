@@ -95,7 +95,7 @@ export function WorkspaceSelector() {
           {activeWorkspace ? activeWorkspace.name.charAt(0).toUpperCase() : 'W'}
         </Avatar>
         <Box sx={{ textAlign: 'left', display: { xs: 'none', sm: 'block' } }}>
-          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary' }}>
             {activeWorkspace ? activeWorkspace.name : t('newWorkspace')}
           </Typography>
         </Box>

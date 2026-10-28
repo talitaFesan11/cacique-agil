@@ -14,7 +14,13 @@ export function ThemeToggle() {
 
   return (
     <Tooltip title={t('toggle')}>
-      <IconButton onClick={toggleColorMode} color="inherit" aria-label={t('toggle')} size="small">
+      <IconButton
+        onClick={toggleColorMode}
+        color="inherit"
+        aria-label={t('toggle')}
+        size="small"
+        data-testid="theme-toggle-button"
+      >
         {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
       </IconButton>
     </Tooltip>

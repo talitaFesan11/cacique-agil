@@ -39,7 +39,14 @@ export default function HomePage() {
       {/* Banner de Boas-Vindas */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 1 }}>
-          <Typography variant="h1" sx={{ fontSize: { xs: '1.75rem', md: '2.25rem' } }}>
+          <Typography
+            variant="h1"
+            sx={{
+              fontSize: { xs: '1.75rem', md: '2.25rem' },
+              color: 'text.primary',
+              fontWeight: 700,
+            }}
+          >
             {tHome('welcome')}
           </Typography>
           <Chip
@@ -50,7 +57,7 @@ export default function HomePage() {
             variant="outlined"
           />
         </Box>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
           {tHome('foundationDescription')}
         </Typography>
       </Box>
@@ -63,7 +70,7 @@ export default function HomePage() {
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                 <WorkspacesOutlinedIcon color="primary" />
-                <Typography variant="h3" sx={{ fontSize: '1.25rem' }}>
+                <Typography variant="h3" sx={{ fontSize: '1.25rem', color: 'text.primary', fontWeight: 600 }}>
                   {tHome('activeWorkspaceCardTitle')}
                 </Typography>
               </Box>
@@ -137,11 +144,11 @@ export default function HomePage() {
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                 <ApiIcon color="primary" />
-                <Typography variant="h3" sx={{ fontSize: '1.25rem' }}>
+                <Typography variant="h3" sx={{ fontSize: '1.25rem', color: 'text.primary', fontWeight: 600 }}>
                   {tHome('apiStatusTitle')}
                 </Typography>
               </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
                 API Express + TypeScript com autenticação Bearer JWT, Refresh Token rotativo em
                 cookie httpOnly, RBAC em middleware e especificação OpenAPI 3.0 atualizada.
               </Typography>
@@ -182,11 +189,11 @@ export default function HomePage() {
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
                 <SecurityIcon color="primary" />
-                <Typography variant="h4" sx={{ fontSize: '1.125rem' }}>
+                <Typography variant="h4" sx={{ fontSize: '1.125rem', color: 'text.primary', fontWeight: 600 }}>
                   {tHome('nextPhasesTitle')}
                 </Typography>
               </Box>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 {tHome('nextPhasesDesc')}
               </Typography>
             </CardContent>

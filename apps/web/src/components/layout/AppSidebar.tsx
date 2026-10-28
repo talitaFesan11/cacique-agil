@@ -101,7 +101,7 @@ export function AppSidebar({ open, onClose, mobileOpen }: AppSidebarProps) {
                 }}
               >
                 <ListItemIcon
-                  sx={{ minWidth: 40, color: isSelected ? 'primary.main' : 'inherit' }}
+                  sx={{ minWidth: 40, color: isSelected ? 'primary.main' : 'text.secondary' }}
                 >
                   {item.icon}
                 </ListItemIcon>
@@ -110,7 +110,7 @@ export function AppSidebar({ open, onClose, mobileOpen }: AppSidebarProps) {
                   primaryTypographyProps={{
                     fontSize: '0.875rem',
                     fontWeight: isSelected ? 600 : 400,
-                    color: isSelected ? 'primary.main' : 'inherit',
+                    color: isSelected ? 'primary.main' : 'text.primary',
                   }}
                 />
               </ListItemButton>

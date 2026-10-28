@@ -199,6 +199,7 @@ model Project {
   documents   Document[]
   whiteboards Whiteboard[]
   savedViews  SavedView[]
+  baselines   ProjectBaseline[]
 
   @@unique([workspaceId, key])
   @@index([workspaceId])
@@ -277,6 +278,40 @@ model TaskDependency {
   @@index([predecessorId])
   @@index([successorId])
   @@map("task_dependencies")
+}
+
+// -------------------------------------------------------------
+// Linha de Base (Baseline - Seção 6.4)
+// -------------------------------------------------------------
+
+model ProjectBaseline {
+  id          String             @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  createdAt   DateTime           @default(now())
+
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items       TaskBaselineItem[]
+
+  @@index([projectId])
+  @@map("project_baselines")
+}
+
+model TaskBaselineItem {
+  id         String          @id @default(cuid())
+  baselineId String
+  taskId     String
+  startDate  DateTime?
+  dueDate    DateTime?
+  createdAt  DateTime        @default(now())
+
+  baseline   ProjectBaseline @relation(fields: [baselineId], references: [id], onDelete: Cascade)
+
+  @@unique([baselineId, taskId])
+  @@index([baselineId])
+  @@index([taskId])
+  @@map("task_baseline_items")
 }
 
 // -------------------------------------------------------------

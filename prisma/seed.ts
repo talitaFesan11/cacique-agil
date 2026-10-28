@@ -4,6 +4,7 @@ import {
   ProjectStatus,
   StatusCategory,
   TaskPriority,
+  DependencyType,
 } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -14,6 +15,8 @@ async function main() {
   // 1. Limpeza em ordem reversa para garantir idempotência do seed em dev
   await prisma.activityLog.deleteMany();
   await prisma.notification.deleteMany();
+  await prisma.taskBaselineItem.deleteMany();
+  await prisma.projectBaseline.deleteMany();
   await prisma.taskDependency.deleteMany();
   await prisma.taskLabel.deleteMany();
   await prisma.label.deleteMany();
@@ -269,6 +272,8 @@ async function main() {
       statusId: statusDone.id,
       priority: TaskPriority.HIGH,
       assigneeIds: [adminUser.id],
+      startDate: new Date('2026-10-20T09:00:00.000Z'),
+      dueDate: new Date('2026-10-23T18:00:00.000Z'),
       estimateMinutes: 180,
       progress: 100,
       position: 1000,
@@ -287,6 +292,8 @@ async function main() {
       statusId: statusDone.id,
       priority: TaskPriority.URGENT,
       assigneeIds: [adminUser.id, memberUser.id],
+      startDate: new Date('2026-10-24T09:00:00.000Z'),
+      dueDate: new Date('2026-10-27T18:00:00.000Z'),
       estimateMinutes: 240,
       progress: 100,
       position: 2000,
@@ -404,9 +411,32 @@ async function main() {
       statusId: statusInReview.id,
       priority: TaskPriority.LOW,
       assigneeIds: [guestUser.id],
+      startDate: new Date('2026-11-15T09:00:00.000Z'),
+      dueDate: new Date('2026-11-19T18:00:00.000Z'),
       estimateMinutes: 90,
       progress: 50,
       position: 3000,
+    },
+  });
+
+  const task9 = await prisma.task.create({
+    data: {
+      projectId: defaultProject.id,
+      number: 9,
+      title: 'Marco: Lançamento da Release v1.0',
+      description: {
+        type: 'doc',
+        text: 'Marco de entrega final consolidando todas as 4 fases iniciais.',
+      },
+      statusId: statusTodo.id,
+      priority: TaskPriority.URGENT,
+      assigneeIds: [adminUser.id],
+      startDate: new Date('2026-11-21T00:00:00.000Z'),
+      dueDate: new Date('2026-11-21T00:00:00.000Z'),
+      estimateMinutes: 0,
+      progress: 0,
+      isMilestone: true,
+      position: 4000,
     },
   });
 
@@ -423,6 +453,105 @@ async function main() {
       { taskId: task6.id, labelId: labelBackend.id },
       { taskId: task7.id, labelId: labelFrontend.id },
       { taskId: task8.id, labelId: labelUx.id },
+      { taskId: task9.id, labelId: labelBackend.id },
+    ],
+  });
+
+  // 8. Dependências de Tarefas (Fase 4 - Caminho Crítico)
+  await prisma.taskDependency.createMany({
+    data: [
+      {
+        predecessorId: task1.id,
+        successorId: task2.id,
+        type: DependencyType.FS,
+        lagDays: 0,
+      },
+      {
+        predecessorId: task2.id,
+        successorId: task3.id,
+        type: DependencyType.FS,
+        lagDays: 0,
+      },
+      {
+        predecessorId: task3.id,
+        successorId: task5.id,
+        type: DependencyType.FS,
+        lagDays: 0,
+      },
+      {
+        predecessorId: task5.id,
+        successorId: task6.id,
+        type: DependencyType.FS,
+        lagDays: 0,
+      },
+      {
+        predecessorId: task6.id,
+        successorId: task7.id,
+        type: DependencyType.FS,
+        lagDays: 1,
+      },
+      {
+        predecessorId: task7.id,
+        successorId: task9.id,
+        type: DependencyType.FS,
+        lagDays: 0,
+      },
+    ],
+  });
+
+  // 9. Linha de Base (Baseline - Fase 4)
+  const baseline = await prisma.projectBaseline.create({
+    data: {
+      projectId: defaultProject.id,
+      name: 'Linha de Base Aprovada (Sprint 1)',
+      description: 'Snapshot inicial de datas acordadas para a entrega v1.0',
+    },
+  });
+
+  await prisma.taskBaselineItem.createMany({
+    data: [
+      {
+        baselineId: baseline.id,
+        taskId: task1.id,
+        startDate: new Date('2026-10-20T09:00:00.000Z'),
+        dueDate: new Date('2026-10-23T18:00:00.000Z'),
+      },
+      {
+        baselineId: baseline.id,
+        taskId: task2.id,
+        startDate: new Date('2026-10-24T09:00:00.000Z'),
+        dueDate: new Date('2026-10-27T18:00:00.000Z'),
+      },
+      {
+        baselineId: baseline.id,
+        taskId: task3.id,
+        startDate: new Date('2026-10-27T09:00:00.000Z'),
+        dueDate: new Date('2026-11-03T18:00:00.000Z'),
+      },
+      {
+        baselineId: baseline.id,
+        taskId: task5.id,
+        startDate: new Date('2026-11-04T09:00:00.000Z'),
+        dueDate: new Date('2026-11-11T18:00:00.000Z'),
+      },
+      {
+        baselineId: baseline.id,
+        taskId: task6.id,
+        startDate: new Date('2026-11-12T09:00:00.000Z'),
+        dueDate: new Date('2026-11-16T18:00:00.000Z'),
+      },
+      {
+        baselineId: baseline.id,
+        taskId: task7.id,
+        startDate: new Date('2026-11-17T09:00:00.000Z'),
+        dueDate: new Date('2026-11-19T18:00:00.000Z'),
+      },
+      {
+        baselineId: baseline.id,
+        taskId: task9.id,
+        startDate: new Date('2026-11-20T00:00:00.000Z'),
+        dueDate: new Date('2026-11-20T00:00:00.000Z'),
+      },
     ],
   });
 

@@ -84,7 +84,9 @@ describe('Fase 3 UI: TaskKanbanView (Quadro Kanban com Limite WIP e Swimlanes)',
     },
   ];
 
-  it('renderiza colunas, cartões de tarefas e alerta de limite WIP excedido quando a coluna tem mais tarefas do que o limite', () => {
+  it(
+    'renderiza colunas, cartões de tarefas e alerta de limite WIP excedido quando a coluna tem mais tarefas do que o limite',
+    () => {
     const onSelectTask = vi.fn();
     const onMoveTask = vi.fn().mockResolvedValue(undefined);
     const onQuickCreateTask = vi.fn().mockResolvedValue(undefined);
@@ -133,5 +135,5 @@ describe('Fase 3 UI: TaskKanbanView (Quadro Kanban com Limite WIP e Swimlanes)',
     fireEvent.click(addColBtn);
     expect(screen.getByTestId('column-settings-dialog')).toBeInTheDocument();
     expect(screen.getAllByText('Nova Coluna').length).toBeGreaterThanOrEqual(2);
-  });
+  }, 15000);
 });

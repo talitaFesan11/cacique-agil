@@ -115,7 +115,7 @@ export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
                 </Avatar>
                 <Typography
                   variant="body2"
-                  sx={{ fontWeight: 600, display: { xs: 'none', md: 'block' } }}
+                  sx={{ fontWeight: 600, display: { xs: 'none', md: 'block' }, color: 'text.primary' }}
                 >
                   {user.name}
                 </Typography>
@@ -128,10 +128,10 @@ export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
                 PaperProps={{ sx: { minWidth: 220, mt: 1 } }}
               >
                 <Box sx={{ px: 2, py: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
                     {user.name}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                     {user.email}
                   </Typography>
                 </Box>

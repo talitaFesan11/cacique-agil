@@ -135,10 +135,13 @@ export default function ProjectsPage() {
         }}
       >
         <Box>
-          <Typography variant="h1" sx={{ fontSize: { xs: '1.5rem', md: '2rem' }, mb: 0.5 }}>
+          <Typography
+            variant="h1"
+            sx={{ fontSize: { xs: '1.5rem', md: '2rem' }, mb: 0.5, color: 'text.primary', fontWeight: 700 }}
+          >
             {t('title')}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {t('subtitle')}
           </Typography>
         </Box>

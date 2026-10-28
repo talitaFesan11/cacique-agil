@@ -1,6 +1,19 @@
 import { Components, Theme } from '@mui/material/styles';
 
 export const components: Components<Theme> = {
+  MuiCssBaseline: {
+    styleOverrides: (theme) => ({
+      body: {
+        color: theme.palette.text.primary,
+        backgroundColor: theme.palette.background.default,
+      },
+    }),
+  },
+  MuiTypography: {
+    defaultProps: {
+      color: 'text.primary',
+    },
+  },
   MuiButton: {
     styleOverrides: {
       root: {

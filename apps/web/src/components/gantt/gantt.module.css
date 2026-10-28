@@ -1,0 +1,291 @@
+.ganttContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 270px);
+  min-height: 550px;
+  background-color: var(--mui-palette-background-paper);
+  border: 1px solid var(--mui-palette-divider);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: var(--mui-palette-background-default);
+  border-bottom: 1px solid var(--mui-palette-divider);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.splitView {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Tabela Lateral Esquerda */
+.leftTable {
+  width: 380px;
+  min-width: 300px;
+  max-width: 450px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--mui-palette-divider);
+  background-color: var(--mui-palette-background-paper);
+  z-index: 5;
+}
+
+.tableHeader {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid var(--mui-palette-divider);
+  background-color: var(--mui-palette-background-default);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--mui-palette-text-secondary, #475569);
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.tableBody {
+  flex: 1;
+  overflow-y: hidden; /* Scroll sincronizado pelo container da direita */
+  overflow-x: hidden;
+}
+
+.tableRow {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--mui-palette-divider);
+  padding: 0 12px;
+  font-size: 0.875rem;
+  color: var(--mui-palette-text-primary, #0f172a);
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+.tableRow:hover {
+  background-color: var(--mui-palette-action-hover);
+}
+
+.tableRowSelected {
+  background-color: var(--mui-palette-action-selected);
+}
+
+/* Linha do Tempo Direita */
+.timelineArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  position: relative;
+  background-color: var(--mui-palette-background-paper);
+}
+
+.timelineHeader {
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--mui-palette-background-default);
+  color: var(--mui-palette-text-primary, inherit);
+  border-bottom: 2px solid var(--mui-palette-divider);
+}
+
+.timelineBody {
+  position: relative;
+  min-height: 100%;
+}
+
+/* Grid de Linhas e Colunas */
+.gridLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.weekendColumn {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.025);
+}
+
+.todayLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #ef4444;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.todayBadge {
+  position: absolute;
+  top: 4px;
+  left: -20px;
+  background-color: #ef4444;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+/* Camada de Setas SVG de Dependência */
+.svgLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.dependencyArrow {
+  fill: none;
+  stroke: var(--mui-palette-text-secondary, #64748b);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.2s, stroke-width 0.2s;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.dependencyArrow:hover {
+  stroke: var(--mui-palette-primary-main, #2563eb);
+  stroke-width: 2.5;
+}
+
+.criticalArrow {
+  stroke: #ef4444;
+  stroke-width: 2;
+}
+
+/* Barras de Tarefas */
+.taskRowTimeline {
+  height: 44px;
+  position: relative;
+  border-bottom: 1px solid var(--mui-palette-divider);
+}
+
+.taskBar {
+  position: absolute;
+  top: 8px;
+  height: 28px;
+  border-radius: 4px;
+  background-color: #2563eb;
+  background-color: var(--mui-palette-primary-main, #2563eb);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: grab;
+  user-select: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+  z-index: 7;
+}
+
+.taskBar:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.taskBarCritical {
+  background-color: #ef4444 !important;
+  box-shadow: 0 0 0 1px #dc2626, 0 2px 6px rgba(239, 68, 68, 0.3);
+}
+
+.progressBar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+}
+
+/* Marco (Milestone) em Losango */
+.milestoneDiamond {
+  position: absolute;
+  top: 10px;
+  width: 22px;
+  height: 22px;
+  background-color: #8b5cf6;
+  transform: rotate(45deg);
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  z-index: 7;
+  transition: transform 0.15s ease;
+}
+
+.milestoneDiamond:hover {
+  transform: rotate(45deg) scale(1.15);
+}
+
+.milestoneCritical {
+  background-color: #ef4444 !important;
+}
+
+/* Barra de Linha de Base (Baseline) */
+.baselineBar {
+  position: absolute;
+  top: 34px;
+  height: 5px;
+  border-radius: 2px;
+  background-color: #94a3b8;
+  opacity: 0.75;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.resizeHandleLeft,
+.resizeHandleRight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  background-color: rgba(255, 255, 255, 0.4);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.resizeHandleLeft {
+  left: 0;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.resizeHandleRight {
+  right: 0;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.taskBar:hover .resizeHandleLeft,
+.taskBar:hover .resizeHandleRight {
+  opacity: 1;
+}

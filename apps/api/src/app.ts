@@ -15,6 +15,8 @@ import { authRouter } from './modules/auth/auth.routes.js';
 import { workspacesRouter } from './modules/workspaces/workspaces.routes.js';
 import { projectsRouter } from './modules/projects/projects.routes.js';
 import { tasksRouter } from './modules/tasks/tasks.routes.js';
+import dependenciesRouter from './modules/tasks/dependencies.routes.js';
+import baselinesRouter from './modules/tasks/baselines.routes.js';
 import { getOpenApiDocumentation } from './openapi/openapi.js';
 
 export const createApp = (): Express => {
@@ -67,6 +69,10 @@ export const createApp = (): Express => {
   // Rotas da Fase 2: Projetos, Status, Visões Salvas, Tarefas, Checklists, Comentários e Anexos
   app.use('/api/v1', projectsRouter);
   app.use('/api/v1', tasksRouter);
+
+  // Rotas da Fase 4: Dependências, Linhas de Base (Baselines), Auto-reschedule
+  app.use('/api/v1', dependenciesRouter);
+  app.use('/api/v1', baselinesRouter);
 
   // Documentação OpenAPI / Swagger UI
   const swaggerDocs = getOpenApiDocumentation();

@@ -18,6 +18,7 @@ import TimelineIcon from '@mui/icons-material/Timeline';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import DescriptionIcon from '@mui/icons-material/Description';
 import GestureIcon from '@mui/icons-material/Gesture';
+import GroupIcon from '@mui/icons-material/Group';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -36,6 +37,9 @@ import {
 } from '@/components/tasks/TaskFiltersBar';
 import { TaskListView } from '@/components/tasks/TaskListView';
 import { TaskKanbanView } from '@/components/kanban/TaskKanbanView';
+import { TaskGanttView } from '@/components/gantt/TaskGanttView';
+import { TaskCalendarView } from '@/components/calendar/TaskCalendarView';
+import { WorkloadView } from '@/components/timeline/WorkloadView';
 import { TaskDetailDrawer } from '@/components/tasks/TaskDetailDrawer';
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog';
 import { KeyboardShortcutsDialog } from '@/components/tasks/KeyboardShortcutsDialog';
@@ -73,7 +77,7 @@ export default function ProjectTasksPage() {
     assigneeId: '',
     groupBy: 'status',
   });
-  const [activeTab, setActiveTab] = useState<'list' | 'kanban'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'kanban' | 'gantt' | 'calendar' | 'workload'>('list');
   const [activeSavedViewId, setActiveSavedViewId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
@@ -85,14 +89,17 @@ export default function ProjectTasksPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      const view = urlParams.get('view');
-      if (view === 'kanban') {
-        setActiveTab('kanban');
+      const view = urlParams.get('view') as 'list' | 'kanban' | 'gantt' | 'calendar' | 'workload' | null;
+      if (view && ['list', 'kanban', 'gantt', 'calendar', 'workload'].includes(view)) {
+        setActiveTab(view);
       }
     }
   }, []);
 
-  const handleTabChange = (_: React.SyntheticEvent, nextTab: 'list' | 'kanban') => {
+  const handleTabChange = (
+    _: React.SyntheticEvent,
+    nextTab: 'list' | 'kanban' | 'gantt' | 'calendar' | 'workload',
+  ) => {
     setActiveTab(nextTab);
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
@@ -322,7 +329,10 @@ export default function ProjectTasksPage() {
             }}
           />
 
-          <Typography variant="h1" sx={{ fontSize: { xs: '1.35rem', md: '1.75rem' } }}>
+          <Typography
+            variant="h1"
+            sx={{ fontSize: { xs: '1.35rem', md: '1.75rem' }, color: 'text.primary', fontWeight: 700 }}
+          >
             {project.name}
           </Typography>
         </Box>
@@ -379,17 +389,24 @@ export default function ProjectTasksPage() {
           />
           <Tab
             value="gantt"
-            disabled
             icon={<TimelineIcon fontSize="small" />}
             iconPosition="start"
             label={t('viewGantt')}
+            data-testid="tab-gantt"
           />
           <Tab
             value="calendar"
-            disabled
             icon={<CalendarMonthIcon fontSize="small" />}
             iconPosition="start"
             label={t('viewCalendar')}
+            data-testid="tab-calendar"
+          />
+          <Tab
+            value="workload"
+            icon={<GroupIcon fontSize="small" />}
+            iconPosition="start"
+            label={t('viewWorkload')}
+            data-testid="tab-workload"
           />
           <Tab
             value="docs"
@@ -408,26 +425,28 @@ export default function ProjectTasksPage() {
         </Tabs>
       </Box>
 
-      {/* Barra de Filtros, Busca, Agrupamento e Visões Salvas */}
-      <TaskFiltersBar
-        filters={filters}
-        onChangeFilters={(next) => {
-          setActiveSavedViewId(null);
-          setFilters(next);
-        }}
-        statuses={statuses}
-        labels={labels}
-        members={members}
-        savedViews={savedViews}
-        activeSavedViewId={activeSavedViewId}
-        onSelectSavedView={handleSelectSavedView}
-        onCreateSavedView={handleCreateSavedView}
-        onDeleteSavedView={handleDeleteSavedView}
-        searchInputRef={searchInputRef}
-        canWrite={Boolean(canWrite)}
-      />
+      {/* Barra de Filtros, Busca, Agrupamento e Visões Salvas (nas visões de lista e kanban) */}
+      {(activeTab === 'list' || activeTab === 'kanban') && (
+        <TaskFiltersBar
+          filters={filters}
+          onChangeFilters={(next) => {
+            setActiveSavedViewId(null);
+            setFilters(next);
+          }}
+          statuses={statuses}
+          labels={labels}
+          members={members}
+          savedViews={savedViews}
+          activeSavedViewId={activeSavedViewId}
+          onSelectSavedView={handleSelectSavedView}
+          onCreateSavedView={handleCreateSavedView}
+          onDeleteSavedView={handleDeleteSavedView}
+          searchInputRef={searchInputRef}
+          canWrite={Boolean(canWrite)}
+        />
+      )}
 
-      {/* Visão de Tarefas: Lista ou Kanban */}
+      {/* Visão de Tarefas: Lista, Kanban, Gantt, Calendário ou Carga de Trabalho */}
       {loadingTasks ? (
         <Skeleton variant="rounded" height={320} />
       ) : activeTab === 'kanban' ? (
@@ -457,6 +476,22 @@ export default function ProjectTasksPage() {
           }}
           canWrite={Boolean(canWrite)}
         />
+      ) : activeTab === 'gantt' ? (
+        <Box sx={{ mt: 1.5 }}>
+          <TaskGanttView
+            projectId={projectId}
+            canWrite={Boolean(canWrite)}
+            onOpenTaskDetail={(taskId) => setSelectedTaskId(taskId)}
+          />
+        </Box>
+      ) : activeTab === 'calendar' ? (
+        <TaskCalendarView
+          projectId={projectId}
+          canWrite={Boolean(canWrite)}
+          onOpenTaskDetail={(taskId) => setSelectedTaskId(taskId)}
+        />
+      ) : activeTab === 'workload' ? (
+        <WorkloadView projectId={projectId} />
       ) : (
         <TaskListView
           tasks={tasks}

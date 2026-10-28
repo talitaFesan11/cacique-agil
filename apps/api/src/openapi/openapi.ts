@@ -47,6 +47,13 @@ import {
   CreateCommentRequestSchema,
   AttachmentSchema,
   CreateAttachmentRequestSchema,
+  GanttProjectDataSchema,
+  ProjectWorkloadSummarySchema,
+  TaskDependencySchema,
+  CreateTaskDependencyRequestSchema,
+  AutoRescheduleResultSchema,
+  ProjectBaselineSchema,
+  CreateBaselineRequestSchema,
 } from '@fluxo/shared';
 
 extendZodWithOpenApi(z);
@@ -870,6 +877,155 @@ registry.registerPath({
     201: {
       description: 'Anexo registrado',
       content: { 'application/json': { schema: AttachmentSchema } },
+    },
+  },
+});
+
+// -------------------------------------------------------------
+// Fase 4: Gantt, Dependências, Baselines e Workload
+// -------------------------------------------------------------
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/projects/{id}/gantt',
+  tags: ['Gantt'],
+  summary: 'Obter dados completos do gráfico de Gantt com CPM e dependências',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    query: z.object({ baselineId: z.string().optional() }),
+  },
+  responses: {
+    200: {
+      description: 'Dados do Gantt calculados com caminho crítico',
+      content: { 'application/json': { schema: z.object({ data: GanttProjectDataSchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/projects/{id}/workload',
+  tags: ['Gantt'],
+  summary: 'Obter análise de carga de trabalho e capacidade por membro',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    query: z.object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Resumo de carga de trabalho por membro',
+      content: { 'application/json': { schema: z.object({ data: ProjectWorkloadSummarySchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/projects/{id}/dependencies',
+  tags: ['Dependencies'],
+  summary: 'Listar dependências entre tarefas do projeto',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Lista de dependências',
+      content: { 'application/json': { schema: z.object({ data: z.array(TaskDependencySchema) }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/projects/{id}/dependencies',
+  tags: ['Dependencies'],
+  summary: 'Criar dependência com validação de ciclos em grafo (DAG)',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: CreateTaskDependencyRequestSchema } } },
+  },
+  responses: {
+    201: {
+      description: 'Dependência criada com sucesso',
+      content: { 'application/json': { schema: z.object({ data: TaskDependencySchema }) } },
+    },
+    422: {
+      description: 'Ciclo detectado ou auto-dependência',
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/v1/projects/{id}/dependencies/{dependencyId}',
+  tags: ['Dependencies'],
+  summary: 'Remover dependência entre tarefas',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string(), dependencyId: z.string() }),
+  },
+  responses: {
+    204: {
+      description: 'Dependência removida com sucesso',
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/projects/{id}/auto-reschedule',
+  tags: ['Dependencies'],
+  summary: 'Reagendar tarefas sucessoras automaticamente respeitando dependências',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Tarefas reagendadas',
+      content: { 'application/json': { schema: z.object({ data: AutoRescheduleResultSchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/projects/{id}/baselines',
+  tags: ['Baselines'],
+  summary: 'Listar linhas de base salvas do projeto',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Lista de linhas de base',
+      content: { 'application/json': { schema: z.object({ data: z.array(ProjectBaselineSchema) }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/projects/{id}/baselines',
+  tags: ['Baselines'],
+  summary: 'Criar snapshot de linha de base do projeto',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: CreateBaselineRequestSchema } } },
+  },
+  responses: {
+    201: {
+      description: 'Linha de base criada com sucesso',
+      content: { 'application/json': { schema: z.object({ data: ProjectBaselineSchema }) } },
     },
   },
 });

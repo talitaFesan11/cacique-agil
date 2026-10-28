@@ -199,6 +199,12 @@ export function createInMemoryPrisma() {
   const comments = new Map<string, CommentRecord>();
   const attachments = new Map<string, AttachmentRecord>();
   const savedViews = new Map<string, SavedViewRecord>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const taskDependencies = new Map<string, any>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const projectBaselines = new Map<string, any>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const taskBaselineItems = new Map<string, any>();
 
   const cuid = () => `c${crypto.randomBytes(12).toString('hex')}`;
 
@@ -305,11 +311,17 @@ export function createInMemoryPrisma() {
       comments.clear();
       attachments.clear();
       savedViews.clear();
+      taskDependencies.clear();
+      projectBaselines.clear();
+      taskBaselineItems.clear();
     },
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- callback de transação em memória compatível com Prisma.TransactionClient
-    $transaction: async <T>(fn: (tx: any) => Promise<T>): Promise<T> => {
-      return fn(db);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- callback ou array de promessas de transação em memória compatível com Prisma
+    $transaction: async <T>(arg: any): Promise<T> => {
+      if (Array.isArray(arg)) {
+        return Promise.all(arg) as Promise<T>;
+      }
+      return arg(db);
     },
 
     user: {
@@ -839,6 +851,17 @@ export function createInMemoryPrisma() {
         return getProjectRelations(found);
       },
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findFirst: async ({ where }: any) => {
+        let list = Array.from(projects.values());
+        if (where?.id) list = list.filter((p) => p.id === where.id);
+        if (where?.workspaceId) list = list.filter((p) => p.workspaceId === where.workspaceId);
+        if (where?.deletedAt === null) list = list.filter((p) => p.deletedAt === null);
+        const found = list[0];
+        if (!found) return null;
+        return getProjectRelations(found);
+      },
+
       create: async ({
         data,
       }: {
@@ -998,6 +1021,17 @@ export function createInMemoryPrisma() {
 
       findUnique: async ({ where }: { where: { id: string } }) => {
         const found = tasks.get(where.id);
+        if (!found) return null;
+        return getTaskWithRelations(found);
+      },
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findFirst: async ({ where }: any) => {
+        let list = Array.from(tasks.values());
+        if (where?.id) list = list.filter((t) => t.id === where.id);
+        if (where?.projectId) list = list.filter((t) => t.projectId === where.projectId);
+        if (where?.deletedAt === null) list = list.filter((t) => t.deletedAt === null);
+        const found = list[0];
         if (!found) return null;
         return getTaskWithRelations(found);
       },
@@ -1504,6 +1538,216 @@ export function createInMemoryPrisma() {
         if (!existing) throw new Error('SavedView not found');
         savedViews.delete(where.id);
         return existing;
+      },
+    },
+
+    taskDependency: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findMany: async ({ where }: any = {}) => {
+        let results = Array.from(taskDependencies.values());
+        if (where?.predecessor?.projectId) {
+          results = results.filter((d) => {
+            const pred = tasks.get(d.predecessorId);
+            const succ = tasks.get(d.successorId);
+            return (
+              pred &&
+              succ &&
+              pred.projectId === where.predecessor.projectId &&
+              !pred.deletedAt &&
+              !succ.deletedAt
+            );
+          });
+        }
+        return results.map((d) => {
+          const pred = tasks.get(d.predecessorId)!;
+          const succ = tasks.get(d.successorId)!;
+          const predProj = projects.get(pred?.projectId || '');
+          const succProj = projects.get(succ?.projectId || '');
+          return {
+            ...d,
+            predecessor: {
+              ...pred,
+              project: { key: predProj?.key || 'PRJ' },
+            },
+            successor: {
+              ...succ,
+              project: { key: succProj?.key || 'PRJ' },
+            },
+          };
+        });
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findUnique: async ({ where }: any) => {
+        if (where.id) {
+          const d = taskDependencies.get(where.id);
+          if (!d) return null;
+          const pred = tasks.get(d.predecessorId)!;
+          const succ = tasks.get(d.successorId)!;
+          return {
+            ...d,
+            predecessor: { id: pred.id, projectId: pred.projectId },
+            successor: { id: succ.id, projectId: succ.projectId },
+          };
+        }
+        if (where.predecessorId_successorId) {
+          const { predecessorId, successorId } = where.predecessorId_successorId;
+          for (const d of taskDependencies.values()) {
+            if (d.predecessorId === predecessorId && d.successorId === successorId) {
+              return d;
+            }
+          }
+          return null;
+        }
+        return null;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      create: async ({ data }: any) => {
+        const id = cuid();
+        const record = {
+          id,
+          predecessorId: data.predecessorId,
+          successorId: data.successorId,
+          type: data.type || 'FS',
+          lagDays: data.lagDays || 0,
+          createdAt: new Date(),
+        };
+        taskDependencies.set(id, record);
+        const pred = tasks.get(record.predecessorId)!;
+        const succ = tasks.get(record.successorId)!;
+        const predProj = projects.get(pred?.projectId || '');
+        const succProj = projects.get(succ?.projectId || '');
+        return {
+          ...record,
+          predecessor: {
+            ...pred,
+            project: { key: predProj?.key || 'PRJ' },
+          },
+          successor: {
+            ...succ,
+            project: { key: succProj?.key || 'PRJ' },
+          },
+        };
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete: async ({ where }: any) => {
+        const existing = taskDependencies.get(where.id);
+        taskDependencies.delete(where.id);
+        return existing;
+      },
+      deleteMany: async () => {
+        taskDependencies.clear();
+        return { count: 0 };
+      },
+    },
+
+    projectBaseline: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findMany: async ({ where }: any = {}) => {
+        let results = Array.from(projectBaselines.values());
+        if (where?.projectId) {
+          results = results.filter((b) => b.projectId === where.projectId);
+        }
+        return results.map((b) => {
+          const items = Array.from(taskBaselineItems.values()).filter(
+            (i) => i.baselineId === b.id,
+          );
+          return {
+            ...b,
+            _count: { items: items.length },
+          };
+        });
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findUnique: async ({ where }: any) => {
+        const b = projectBaselines.get(where.id);
+        if (!b) return null;
+        const items = Array.from(taskBaselineItems.values()).filter(
+          (i) => i.baselineId === b.id,
+        );
+        const proj = projects.get(b.projectId);
+        return {
+          ...b,
+          items,
+          project: proj ? { id: proj.id, workspaceId: proj.workspaceId } : null,
+        };
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      create: async ({ data }: any) => {
+        const id = cuid();
+        const record = {
+          id,
+          projectId: data.projectId,
+          name: data.name,
+          description: data.description || null,
+          createdAt: new Date(),
+        };
+        projectBaselines.set(id, record);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const createdItems: any[] = [];
+        if (data.items?.create) {
+          for (const item of data.items.create) {
+            const itemId = cuid();
+            const itemRec = {
+              id: itemId,
+              baselineId: id,
+              taskId: item.taskId,
+              startDate: item.startDate ? new Date(item.startDate) : null,
+              dueDate: item.dueDate ? new Date(item.dueDate) : null,
+              createdAt: new Date(),
+            };
+            taskBaselineItems.set(itemId, itemRec);
+            createdItems.push(itemRec);
+          }
+        }
+        return {
+          ...record,
+          items: createdItems,
+        };
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete: async ({ where }: any) => {
+        const existing = projectBaselines.get(where.id);
+        projectBaselines.delete(where.id);
+        for (const [key, item] of taskBaselineItems.entries()) {
+          if (item.baselineId === where.id) {
+            taskBaselineItems.delete(key);
+          }
+        }
+        return existing;
+      },
+      deleteMany: async () => {
+        projectBaselines.clear();
+        return { count: 0 };
+      },
+    },
+
+    taskBaselineItem: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findMany: async ({ where }: any = {}) => {
+        let results = Array.from(taskBaselineItems.values());
+        if (where?.baselineId) {
+          results = results.filter((i) => i.baselineId === where.baselineId);
+        }
+        return results;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      createMany: async ({ data }: any) => {
+        for (const item of data) {
+          const itemId = cuid();
+          taskBaselineItems.set(itemId, {
+            id: itemId,
+            baselineId: item.baselineId,
+            taskId: item.taskId,
+            startDate: item.startDate ? new Date(item.startDate) : null,
+            dueDate: item.dueDate ? new Date(item.dueDate) : null,
+            createdAt: new Date(),
+          });
+        }
+        return { count: data.length };
+      },
+      deleteMany: async () => {
+        taskBaselineItems.clear();
+        return { count: 0 };
       },
     },
   };
