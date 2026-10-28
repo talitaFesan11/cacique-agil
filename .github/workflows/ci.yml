@@ -47,6 +47,9 @@ jobs:
       - name: Gerar Prisma Client
         run: pnpm db:generate
 
+      - name: Build do pacote compartilhado (@fluxo/shared)
+        run: pnpm --filter @fluxo/shared build
+
       - name: Lint
         run: pnpm lint
 
