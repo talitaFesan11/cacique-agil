@@ -35,9 +35,12 @@ import {
   TaskFiltersBar,
 } from '@/components/tasks/TaskFiltersBar';
 import { TaskListView } from '@/components/tasks/TaskListView';
+import { TaskKanbanView } from '@/components/kanban/TaskKanbanView';
 import { TaskDetailDrawer } from '@/components/tasks/TaskDetailDrawer';
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog';
 import { KeyboardShortcutsDialog } from '@/components/tasks/KeyboardShortcutsDialog';
+import { useProjectRealtime } from '@/features/realtime/use-project-realtime';
+import { PresenceBar } from '@/features/realtime/PresenceBar';
 
 export default function ProjectTasksPage() {
   const params = useParams<{ projectId: string }>();
@@ -70,10 +73,33 @@ export default function ProjectTasksPage() {
     assigneeId: '',
     groupBy: 'status',
   });
+  const [activeTab, setActiveTab] = useState<'list' | 'kanban'>('list');
   const [activeSavedViewId, setActiveSavedViewId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // Tempo real via Socket.IO e Presença
+  const { isConnected, activeUsers } = useProjectRealtime(projectId);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const view = urlParams.get('view');
+      if (view === 'kanban') {
+        setActiveTab('kanban');
+      }
+    }
+  }, []);
+
+  const handleTabChange = (_: React.SyntheticEvent, nextTab: 'list' | 'kanban') => {
+    setActiveTab(nextTab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', nextTab);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
 
   // Queries do projeto, tarefas, etiquetas, membros e visões salvas
   const {
@@ -302,6 +328,9 @@ export default function ProjectTasksPage() {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {/* Barra de Presença em Tempo Real */}
+          <PresenceBar isConnected={isConnected} activeUsers={activeUsers} />
+
           <Button
             size="small"
             variant="outlined"
@@ -328,19 +357,25 @@ export default function ProjectTasksPage() {
 
       {/* Abas de Visão do Projeto (Seção 7 da Spec) */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2.5 }}>
-        <Tabs value="list" variant="scrollable" scrollButtons="auto">
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
+        >
           <Tab
             value="list"
             icon={<FormatListBulletedIcon fontSize="small" />}
             iconPosition="start"
             label={t('viewList')}
+            data-testid="tab-list"
           />
           <Tab
             value="kanban"
-            disabled
             icon={<ViewKanbanIcon fontSize="small" />}
             iconPosition="start"
             label={t('viewKanban')}
+            data-testid="tab-kanban"
           />
           <Tab
             value="gantt"
@@ -392,9 +427,36 @@ export default function ProjectTasksPage() {
         canWrite={Boolean(canWrite)}
       />
 
-      {/* Visão Lista de Tarefas */}
+      {/* Visão de Tarefas: Lista ou Kanban */}
       {loadingTasks ? (
         <Skeleton variant="rounded" height={320} />
+      ) : activeTab === 'kanban' ? (
+        <TaskKanbanView
+          tasks={tasks}
+          statuses={statuses}
+          members={members}
+          selectedTaskId={selectedTaskId}
+          onSelectTask={(id) => setSelectedTaskId(id)}
+          onMoveTask={async (taskId, patch) => {
+            await tasksApi.move(taskId, patch);
+            await refetchTasks();
+            await queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+          }}
+          onQuickCreateTask={handleQuickCreateTask}
+          onCreateStatus={async (input) => {
+            await projectsApi.createStatus(projectId, input);
+            await queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+          }}
+          onUpdateStatus={async (statusId, input) => {
+            await projectsApi.updateStatus(projectId, statusId, input);
+            await queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+          }}
+          onDeleteStatus={async (statusId) => {
+            await projectsApi.deleteStatus(projectId, statusId);
+            await queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+          }}
+          canWrite={Boolean(canWrite)}
+        />
       ) : (
         <TaskListView
           tasks={tasks}

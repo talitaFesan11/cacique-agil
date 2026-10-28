@@ -156,7 +156,7 @@
   },
   "tasks": {
     "viewList": "List",
-    "viewKanban": "Kanban (Phase 3)",
+    "viewKanban": "Kanban",
     "viewGantt": "Gantt (Phase 4)",
     "viewTimeline": "Timeline (Phase 4)",
     "viewCalendar": "Calendar (Phase 4)",

@@ -14,9 +14,18 @@ Este documento registra a evolução incremental do projeto **Cacique Agil**, co
     - [`phase2-tasks-list-view.png`](./phases/fase-02/screenshots/phase2-tasks-list-view.png)
     - [`phase2-task-detail-drawer.png`](./phases/fase-02/screenshots/phase2-task-detail-drawer.png)
     - [`phase2-filtered-saved-view.png`](./phases/fase-02/screenshots/phase2-filtered-saved-view.png)
+- **Fase 03 — Quadro Kanban e Tempo Real**:
+  - [Implementation Plan (`docs/phases/fase-03/implementation_plan.md`)](./phases/fase-03/implementation_plan.md)
+  - [Walkthrough & Validação (`docs/phases/fase-03/walkthrough.md`)](./phases/fase-03/walkthrough.md)
+  - Screenshots de Validação E2E (`docs/phases/fase-03/screenshots/`):
+    - [`phase3-kanban-board.png`](./phases/fase-03/screenshots/phase3-kanban-board.png)
+    - [`phase3-kanban-drawer.png`](./phases/fase-03/screenshots/phase3-kanban-drawer.png)
+    - [`phase3-kanban-swimlanes.png`](./phases/fase-03/screenshots/phase3-kanban-swimlanes.png)
+    - [`phase3-realtime-presence.png`](./phases/fase-03/screenshots/phase3-realtime-presence.png)
 - **Architecture Decision Records (`docs/decisions/`)**:
   - [ADR 001 — Tokens de Autenticação e Hashing de Senhas](./decisions/001-auth-tokens-and-password-hashing.md)
   - [ADR 002 — Hierarquia de Subtarefas, Ordenação e Visões Salvas (Fase 2)](./decisions/002-phase2-tasks-hierarchy-and-saved-views.md)
+  - [ADR 003 — Posicionamento Fracionário, Alertas WIP e Sincronização em Tempo Real (Fase 3)](./decisions/003-phase3-kanban-and-realtime.md)
 
 ---
 
@@ -58,14 +67,44 @@ Este documento registra a evolução incremental do projeto **Cacique Agil**, co
    - Teste de componente React (`apps/web/tests/TaskListView.test.tsx`).
    - Teste E2E Playwright (`apps/web/e2e/phase2-projects-tasks.spec.ts`) cobrindo o fluxo completo `criar → editar → comentar → filtrar`.
 
+### Fase 03 — Quadro Kanban e Tempo Real (Concluída)
+1. **Schemas Compartilhados (`packages/shared`)**:
+   - `packages/shared/src/schemas/project.ts`: Schemas Zod para atualização de status (`UpdateWorkflowStatusRequestSchema`) com limite WIP opcional e reordenação de colunas (`ReorderWorkflowStatusesRequestSchema`).
+   - `packages/shared/src/schemas/realtime.ts`: Tipagem e validação dos eventos de Socket.IO (`task.created`, `task.updated`, `task.moved`, `task.deleted`, `status.created`, `status.updated`, `status.deleted`, `comment.created`, `presence.update`).
+2. **Backend (`apps/api`)**:
+   - **Servidor WebSocket (`apps/api/src/realtime/`)**:
+     - Servidor Socket.IO acoplado ao HTTP nativo em `server.ts` (`socket.server.ts`).
+     - Handshake autenticado via JWT de cookie ou header (`socket.auth.ts`).
+     - Isolamento multi-tenant de salas por projeto (`project:{projectId}`) com verificação de membro do workspace e controle de presença online (`socket.rooms.ts`).
+     - Singleton emissor tipado (`socket.emitter.ts`) disparando eventos no ciclo de vida das tarefas em `tasks.service.ts`.
+   - **Endpoints de Status e WIP**:
+     - `PATCH /api/v1/projects/:id/statuses/:statusId` para edição de nome, cor, categoria e `wipLimit`.
+     - `DELETE /api/v1/projects/:id/statuses/:statusId` com bloqueio seguro se houver tarefas ativas na coluna.
+     - `POST /api/v1/projects/:id/statuses/reorder` para reordenar colunas do Kanban.
+     - OpenAPI devidamente atualizado.
+3. **Frontend (`apps/web`)**:
+   - **Quadro Kanban com `@dnd-kit` (`apps/web/src/components/kanban/`)**:
+     - `TaskKanbanView.tsx`: Quadro interativo com drag overlay, sensores de ponteiro e teclado, e posicionamento fracionário (`position: Float`).
+     - `KanbanColumn.tsx`: Coluna droppable mapeada para `WorkflowStatus`, contadores, badge e banner de aviso quando o limite WIP é ultrapassado, e criação rápida inline no rodapé.
+     - `KanbanCard.tsx`: Cartão arrastável completo com chave, prioridade, etiquetas, progresso de checklist, contadores de anexos/comentários e avatares.
+     - `ColumnSettingsDialog.tsx`: Diálogo para editar atributos e definir limites WIP da coluna.
+     - **Swimlanes**: Raias horizontais dobráveis por Prioridade (`URGENT`, `HIGH`, `MEDIUM`, `LOW`) e por Responsável.
+   - **Tempo Real e Presença**:
+     - `lib/socket.ts` e hook `useProjectRealtime` com reconexão automática e invalidação cirúrgica de queries React Query.
+     - `PresenceBar.tsx`: Barra de presença online com indicador de conexão verde e stack de avatares com tooltips.
+     - Aba Kanban habilitada na página do projeto com sincronização por URL `?view=kanban`.
+4. **Seed de Demonstração (`prisma/seed.ts`)**:
+   - Status `Em Revisão` configurado com `wipLimit: 2` e 8 tarefas distribuídas para demonstrar o alerta visual de WIP excedido (3/2) e swimlanes.
+5. **Testes Automatizados**:
+   - `apps/api/tests/kanban-status.test.ts` (CRUD de status, reordenação e WIP).
+   - `apps/api/tests/socket-realtime.test.ts` (Handshake JWT, entrada em salas de projeto e presença).
+   - `apps/web/tests/TaskKanbanView.test.tsx` (Renderização de colunas, alerta WIP e diálogo de configurações).
+   - `apps/web/e2e/phase3-kanban-realtime.spec.ts` (E2E multi-contexto validando Kanban, abertura do drawer, swimlanes e sincronização de presença em tempo real).
+
 ---
 
 ## 2. O que ficou pendente (Próximas Fases do Roadmap)
 
-- **Fase 03 — Quadro Kanban:**
-  - Drag-and-drop com `@dnd-kit` entre colunas (`WorkflowStatus`) e reordenação persistente (`PATCH /api/v1/tasks/:id/move`).
-  - Limite WIP (`wipLimit`) configurável por coluna com alerta visual ao exceder.
-  - Swimlanes opcionais por prioridade ou responsável.
 - **Fase 04 — Cronograma (Gantt) e Calendário:**
   - Barras horizontais proporcionais a `startDate`/`dueDate`, marcos (`isMilestone`) e dependências (`BLOCKS`/`BLOCKED_BY`) com detecção de ciclo em grafo dirigido no backend.
   - Visão mensal/semanal de Calendário por `dueDate`.
@@ -130,8 +169,9 @@ pnpm build
 
 ---
 
-## 5. Problemas Conhecidos e Soluções Aplicadas na Fase 02
+## 5. Problemas Conhecidos e Soluções Aplicadas
 
+### Fase 02
 1. **Falha de `Typecheck` no GitHub Actions (`TS2307: Cannot find module '@fluxo/shared'`)**:
    - *Causa:* No runner limpo do CI, `packages/shared/dist` ainda não existia no momento do `pnpm typecheck`, e `apps/web/tsconfig.tsbuildinfo` estava versionado com cache local.
    - *Solução:* Adicionado `pnpm --filter @fluxo/shared build` no script `typecheck`/`test` do `package.json` raiz e em `.github/workflows/ci.yml`, além de adicionar `*.tsbuildinfo` ao `.gitignore`.
@@ -146,3 +186,14 @@ pnpm build
    - *Solução:* Adicionado `suppressHydrationWarning` também na tag `<body suppressHydrationWarning>` em `apps/web/src/app/[locale]/layout.tsx`.
 5. **Bibliotecas compartilhadas ausentes para o Chromium Headless do Playwright no host Linux**:
    - *Observação:* Em sistemas Linux sem `libnspr4.so`, `libnss3.so` e `libasound.so.2` instaladas globalmente, o `playwright.config.ts` inclui `/tmp/pw-libs` no `LD_LIBRARY_PATH` para permitir execução local do Chromium sem exigir `sudo apt-get`.
+
+### Fase 03
+1. **Bloqueio de purge de `node_modules` no pnpm sem TTY (`ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`)**:
+   - *Causa:* Ao adicionar novas dependências via pnpm em ambientes não interativos (como containers Docker com volumes montados ou shells automatizados), o pnpm solicitava confirmação para purgar diretórios de módulos.
+   - *Solução:* Adicionada a instrução `confirmModulesPurge=false` no arquivo `.npmrc` da raiz e `CI: 'true'` nos ambientes de execução.
+2. **Geração do cliente Prisma no Dockerfile de produção/desenvolvimento (`docker/api.Dockerfile`)**:
+   - *Causa:* O comando `pnpm prisma generate` tentava resolver dependências na raiz do monorepo e falhava quando executado sem a flag de schema explícita no container da API.
+   - *Solução:* Ajustado para `RUN npx prisma generate --schema=prisma/schema.prisma`.
+3. **Colisão de localizadores no modo estrito do Playwright (`strict mode violation`)**:
+   - *Causa:* O seletor `getByText(/Em Revisão/)` capturava tanto o cabeçalho da coluna quanto os títulos e status das tarefas na coluna.
+   - *Solução:* Refinado para `getByRole('heading', { name: 'Em Revisão' })` e texto exato `getByText('Limite WIP excedido (3/2)')`.

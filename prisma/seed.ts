@@ -203,7 +203,18 @@ async function main() {
       name: 'Em Andamento',
       category: StatusCategory.IN_PROGRESS,
       position: 2000,
-      wipLimit: 5,
+      wipLimit: 4,
+      color: '#3B82F6',
+    },
+  });
+
+  const statusInReview = await prisma.workflowStatus.create({
+    data: {
+      projectId: defaultProject.id,
+      name: 'Em Revisão',
+      category: StatusCategory.IN_PROGRESS,
+      position: 3000,
+      wipLimit: 2,
       color: '#F59E0B',
     },
   });
@@ -213,7 +224,7 @@ async function main() {
       projectId: defaultProject.id,
       name: 'Concluído',
       category: StatusCategory.DONE,
-      position: 3000,
+      position: 4000,
       color: '#10B981',
     },
   });
@@ -323,6 +334,82 @@ async function main() {
     },
   });
 
+  const task5 = await prisma.task.create({
+    data: {
+      projectId: defaultProject.id,
+      number: 5,
+      title: 'Quadro Kanban com Drag & Drop via @dnd-kit (Fase 3)',
+      description: {
+        type: 'doc',
+        text: 'Ordenação fracionária, colunas dinâmicas, limites WIP e swimlanes.',
+      },
+      statusId: statusInProgress.id,
+      priority: TaskPriority.HIGH,
+      assigneeIds: [adminUser.id, memberUser.id],
+      startDate: new Date('2026-10-26T00:00:00.000Z'),
+      dueDate: new Date('2026-11-10T18:00:00.000Z'),
+      estimateMinutes: 300,
+      progress: 80,
+      position: 2000,
+    },
+  });
+
+  const task6 = await prisma.task.create({
+    data: {
+      projectId: defaultProject.id,
+      number: 6,
+      title: 'Sincronização em Tempo Real via Socket.IO e Presença',
+      description: {
+        type: 'doc',
+        text: 'Salas de projeto, atualização automática de cache e avatares online.',
+      },
+      statusId: statusInReview.id,
+      priority: TaskPriority.URGENT,
+      assigneeIds: [adminUser.id],
+      dueDate: new Date('2026-11-08T18:00:00.000Z'),
+      estimateMinutes: 240,
+      progress: 90,
+      position: 1000,
+    },
+  });
+
+  const task7 = await prisma.task.create({
+    data: {
+      projectId: defaultProject.id,
+      number: 7,
+      title: 'Validar propagação de movimentação de cards em menos de 1s',
+      description: {
+        type: 'doc',
+        text: 'Critério de aceite da Fase 3 com teste multi-sessão.',
+      },
+      statusId: statusInReview.id,
+      priority: TaskPriority.MEDIUM,
+      assigneeIds: [memberUser.id],
+      dueDate: new Date('2026-11-09T18:00:00.000Z'),
+      estimateMinutes: 120,
+      progress: 75,
+      position: 2000,
+    },
+  });
+
+  const task8 = await prisma.task.create({
+    data: {
+      projectId: defaultProject.id,
+      number: 8,
+      title: 'Alerta visual de limite WIP excedido na coluna Em Revisão',
+      description: {
+        type: 'doc',
+        text: 'Esta tarefa propositalmente excede o limite WIP (3 tarefas com limite de 2).',
+      },
+      statusId: statusInReview.id,
+      priority: TaskPriority.LOW,
+      assigneeIds: [guestUser.id],
+      estimateMinutes: 90,
+      progress: 50,
+      position: 3000,
+    },
+  });
+
   // Vincular etiquetas
   await prisma.taskLabel.createMany({
     data: [
@@ -332,6 +419,10 @@ async function main() {
       { taskId: task3.id, labelId: labelFrontend.id },
       { taskId: task3.id, labelId: labelUx.id },
       { taskId: task4.id, labelId: labelBackend.id },
+      { taskId: task5.id, labelId: labelFrontend.id },
+      { taskId: task6.id, labelId: labelBackend.id },
+      { taskId: task7.id, labelId: labelFrontend.id },
+      { taskId: task8.id, labelId: labelUx.id },
     ],
   });
 
@@ -405,7 +496,7 @@ async function main() {
   });
 
   console.log(
-    `✓ Tarefas criadas: ${defaultProject.key}-${task1.number} até ${defaultProject.key}-${task4.number} com etiquetas, checklist, comentário, anexo e visão salva`,
+    `✓ Tarefas criadas: ${defaultProject.key}-${task1.number} até ${defaultProject.key}-${task8.number} com etiquetas, checklist, comentário, anexo e visão salva`,
   );
 
   console.log('Seed concluído com sucesso!');

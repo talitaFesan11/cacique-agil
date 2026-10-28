@@ -195,6 +195,68 @@ export const projectsRepository = {
     });
   },
 
+  async findStatusById(statusId: string) {
+    return prisma.workflowStatus.findUnique({
+      where: { id: statusId },
+      include: {
+        project: {
+          select: {
+            id: true,
+            workspaceId: true,
+            deletedAt: true,
+          },
+        },
+      },
+    });
+  },
+
+  async countTasksByStatus(statusId: string) {
+    return prisma.task.count({
+      where: {
+        statusId,
+        deletedAt: null,
+      },
+    });
+  },
+
+  async updateStatus(
+    statusId: string,
+    data: {
+      name?: string;
+      category?: StatusCategory;
+      position?: number;
+      wipLimit?: number | null;
+      color?: string | null;
+    },
+  ) {
+    return prisma.workflowStatus.update({
+      where: { id: statusId },
+      data,
+    });
+  },
+
+  async deleteStatus(statusId: string) {
+    return prisma.workflowStatus.delete({
+      where: { id: statusId },
+    });
+  },
+
+  async reorderStatuses(projectId: string, statusIds: string[]) {
+    return prisma.$transaction(async (tx) => {
+      const updates = statusIds.map((id, index) =>
+        tx.workflowStatus.update({
+          where: { id },
+          data: { position: (index + 1) * 1000 },
+        }),
+      );
+      await Promise.all(updates);
+      return tx.workflowStatus.findMany({
+        where: { projectId },
+        orderBy: { position: 'asc' },
+      });
+    });
+  },
+
   // Visões Salvas (SavedViews)
   async listSavedViews(projectId: string, userId: string) {
     return prisma.savedView.findMany({

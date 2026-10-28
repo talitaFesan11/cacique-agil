@@ -32,6 +32,7 @@ import {
   UpdateMemberRoleRequest,
   UpdateProjectRequest,
   UpdateTaskRequest,
+  UpdateWorkflowStatusRequest,
   UpdateWorkspaceRequest,
   WorkflowStatusDto,
   WorkspaceDto,
@@ -332,6 +333,36 @@ export const projectsApi = {
       {
         method: 'POST',
         body: JSON.stringify(input),
+      },
+    );
+  },
+  updateStatus(
+    projectId: string,
+    statusId: string,
+    input: UpdateWorkflowStatusRequest,
+  ) {
+    return apiRequest<WorkflowStatusDto>(
+      `/projects/${encodeURIComponent(projectId)}/statuses/${encodeURIComponent(statusId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+    );
+  },
+  deleteStatus(projectId: string, statusId: string) {
+    return apiRequest<MessageResponse>(
+      `/projects/${encodeURIComponent(projectId)}/statuses/${encodeURIComponent(statusId)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+  },
+  reorderStatuses(projectId: string, statusIds: string[]) {
+    return apiRequest<WorkflowStatusDto[]>(
+      `/projects/${encodeURIComponent(projectId)}/statuses/reorder`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ statusIds }),
       },
     );
   },

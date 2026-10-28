@@ -22,6 +22,7 @@ import {
   ALL_WORKSPACE_ROLES,
   MEMBER_WORKSPACE_ROLES,
 } from '../../middleware/rbac.middleware.js';
+import { socketEmitter } from '../../realtime/socket.emitter.js';
 import { tasksRepository } from './tasks.repository.js';
 
 const PRIORITY_WEIGHT: Record<TaskPriority, number> = {
@@ -382,7 +383,9 @@ export const tasksService = {
     });
 
     const fullTask = await tasksRepository.findById(created.id);
-    return mapTaskRecordToDto(fullTask);
+    const taskDto = mapTaskRecordToDto(fullTask);
+    socketEmitter.taskCreated(projectId, taskDto);
+    return taskDto;
   },
 
   async getTaskById(userId: string, taskId: string) {
@@ -455,7 +458,9 @@ export const tasksService = {
     });
 
     const updated = await tasksRepository.findById(taskId);
-    return mapTaskRecordToDto(updated);
+    const dto = mapTaskRecordToDto(updated);
+    socketEmitter.taskUpdated(task.projectId, dto);
+    return dto;
   },
 
   async moveTask(userId: string, taskId: string, input: MoveTaskRequest) {
@@ -465,6 +470,8 @@ export const tasksService = {
     }
 
     await verifyWorkspaceAccess(userId, task.project.workspaceId, MEMBER_WORKSPACE_ROLES);
+
+    const finalStatusId = input.statusId ?? task.statusId;
 
     if (input.statusId && input.statusId !== task.statusId) {
       const project = await tasksRepository.findProjectById(task.projectId);
@@ -479,12 +486,23 @@ export const tasksService = {
     }
 
     await tasksRepository.update(taskId, {
-      statusId: input.statusId ?? task.statusId,
+      statusId: finalStatusId,
       position: input.position,
     });
 
     const updated = await tasksRepository.findById(taskId);
-    return mapTaskRecordToDto(updated);
+    const dto = mapTaskRecordToDto(updated);
+
+    socketEmitter.taskMoved(task.projectId, {
+      taskId,
+      projectId: task.projectId,
+      statusId: finalStatusId,
+      position: input.position,
+      actorId: userId,
+    });
+    socketEmitter.taskUpdated(task.projectId, dto);
+
+    return dto;
   },
 
   async deleteTask(userId: string, taskId: string) {
@@ -495,6 +513,12 @@ export const tasksService = {
 
     await verifyWorkspaceAccess(userId, task.project.workspaceId, MEMBER_WORKSPACE_ROLES);
     await tasksRepository.softDelete(taskId);
+
+    socketEmitter.taskDeleted(task.projectId, {
+      taskId,
+      projectId: task.projectId,
+      actorId: userId,
+    });
 
     return { message: 'Tarefa excluída com sucesso' };
   },
@@ -755,7 +779,7 @@ export const tasksService = {
       } as Prisma.InputJsonValue,
     });
 
-    return {
+    const commentDto = {
       id: comment.id,
       taskId: comment.taskId,
       docId: comment.docId,
@@ -768,6 +792,10 @@ export const tasksService = {
       updatedAt: comment.updatedAt.toISOString(),
       author: comment.author,
     };
+
+    socketEmitter.commentCreated(task.projectId, commentDto);
+
+    return commentDto;
   },
 
   async deleteComment(userId: string, commentId: string) {

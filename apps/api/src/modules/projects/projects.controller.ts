@@ -97,6 +97,46 @@ export const projectsController = {
     }
   },
 
+  async updateStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const status = await projectsService.updateStatus(
+        req.user!.id,
+        String(req.params.id),
+        String(req.params.statusId),
+        req.body,
+      );
+      return res.status(200).json(status);
+    } catch (error) {
+      return next(error);
+    }
+  },
+
+  async deleteStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await projectsService.deleteStatus(
+        req.user!.id,
+        String(req.params.id),
+        String(req.params.statusId),
+      );
+      return res.status(200).json(result);
+    } catch (error) {
+      return next(error);
+    }
+  },
+
+  async reorderStatuses(req: Request, res: Response, next: NextFunction) {
+    try {
+      const statuses = await projectsService.reorderStatuses(
+        req.user!.id,
+        String(req.params.id),
+        req.body.statusIds,
+      );
+      return res.status(200).json(statuses);
+    } catch (error) {
+      return next(error);
+    }
+  },
+
   async listSavedViews(req: Request, res: Response, next: NextFunction) {
     try {
       const views = await projectsService.listSavedViews(

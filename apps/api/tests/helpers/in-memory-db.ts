@@ -929,6 +929,50 @@ export function createInMemoryPrisma() {
         workflowStatuses.set(record.id, record);
         return record;
       },
+
+      findUnique: async ({ where }: { where: { id: string } }) => {
+        const status = workflowStatuses.get(where.id);
+        if (!status) return null;
+        const project = projects.get(status.projectId);
+        return {
+          ...status,
+          project: project
+            ? {
+                id: project.id,
+                workspaceId: project.workspaceId,
+                deletedAt: project.deletedAt,
+              }
+            : null,
+        };
+      },
+
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { id: string };
+        data: Partial<WorkflowStatusRecord>;
+      }) => {
+        const existing = workflowStatuses.get(where.id);
+        if (!existing) throw new Error('Status not found');
+        const updated: WorkflowStatusRecord = {
+          ...existing,
+          ...Object.fromEntries(
+            Object.entries(data).filter(([, v]) => v !== undefined),
+          ),
+          updatedAt: new Date(),
+        };
+        workflowStatuses.set(updated.id, updated);
+        return updated;
+      },
+
+      delete: async ({ where }: { where: { id: string } }) => {
+        const existing = workflowStatuses.get(where.id);
+        if (existing) {
+          workflowStatuses.delete(where.id);
+        }
+        return existing;
+      },
     },
 
     task: {
@@ -1051,6 +1095,23 @@ export function createInMemoryPrisma() {
           count++;
         }
         return { count };
+      },
+
+      count: async ({
+        where,
+      }: {
+        where?: {
+          statusId?: string;
+          projectId?: string;
+          deletedAt?: null;
+        };
+      }) => {
+        return Array.from(tasks.values()).filter((t) => {
+          if (where?.statusId && t.statusId !== where.statusId) return false;
+          if (where?.projectId && t.projectId !== where.projectId) return false;
+          if (where?.deletedAt === null && t.deletedAt !== null) return false;
+          return true;
+        }).length;
       },
     },
 

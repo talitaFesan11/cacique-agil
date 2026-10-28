@@ -35,6 +35,26 @@ export const CreateWorkflowStatusRequestSchema = z
 
 export type CreateWorkflowStatusRequest = z.infer<typeof CreateWorkflowStatusRequestSchema>;
 
+export const UpdateWorkflowStatusRequestSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Nome do status é obrigatório').max(60).optional(),
+    category: z.nativeEnum(StatusCategory).optional(),
+    position: z.number().optional(),
+    wipLimit: z.number().int().min(1).nullable().optional(),
+    color: z.string().regex(hexColorRegex, 'Cor inválida (use formato #RRGGBB)').nullable().optional(),
+  })
+  .openapi('UpdateWorkflowStatusRequest');
+
+export type UpdateWorkflowStatusRequest = z.infer<typeof UpdateWorkflowStatusRequestSchema>;
+
+export const ReorderWorkflowStatusesRequestSchema = z
+  .object({
+    statusIds: z.array(z.string().min(1)).min(1, 'Lista de statusIds é obrigatória'),
+  })
+  .openapi('ReorderWorkflowStatusesRequest');
+
+export type ReorderWorkflowStatusesRequest = z.infer<typeof ReorderWorkflowStatusesRequestSchema>;
+
 export const ProjectSchema = z
   .object({
     id: z.string(),

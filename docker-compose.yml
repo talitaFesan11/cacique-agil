@@ -53,6 +53,7 @@ services:
       target: dev
     container_name: fluxopro-api-dev
     environment:
+      CI: 'true'
       NODE_ENV: development
       PORT: 4000
       DATABASE_URL: postgresql://fluxo:fluxo@postgres:5432/fluxo?schema=public
@@ -69,7 +70,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: sh -c "pnpm --filter @fluxo/shared build && pnpm prisma generate && pnpm prisma migrate deploy && pnpm --filter @fluxo/api dev"
+    command: sh -c "pnpm install && pnpm --filter @fluxo/shared build && pnpm prisma generate && pnpm prisma migrate deploy && pnpm --filter @fluxo/api dev"
 
   web:
     build:
@@ -78,6 +79,7 @@ services:
       target: dev
     container_name: fluxopro-web-dev
     environment:
+      CI: 'true'
       NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
       WATCHPACK_POLLING: 'true'
     ports:
@@ -89,6 +91,7 @@ services:
       - root_node_modules:/workspace/node_modules
     depends_on:
       - api
+    command: sh -c "pnpm install && pnpm --filter @fluxo/web dev"
 
   prisma-studio:
     build:

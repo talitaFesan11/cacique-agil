@@ -14,7 +14,7 @@ RUN pnpm install --frozen-lockfile
 
 FROM deps AS dev
 COPY . .
-RUN pnpm prisma generate
+RUN npx prisma generate --schema=prisma/schema.prisma
 CMD ["sh", "-c", "pnpm prisma migrate deploy && pnpm --filter @fluxo/api dev"]
 
 FROM dev AS build

@@ -26,6 +26,8 @@ import {
   UpdateProjectRequestSchema,
   WorkflowStatusSchema,
   CreateWorkflowStatusRequestSchema,
+  UpdateWorkflowStatusRequestSchema,
+  ReorderWorkflowStatusesRequestSchema,
   SavedViewSchema,
   CreateSavedViewRequestSchema,
   LabelSchema,
@@ -480,6 +482,59 @@ registry.registerPath({
     201: {
       description: 'Status criado',
       content: { 'application/json': { schema: WorkflowStatusSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/api/v1/projects/{id}/statuses/{statusId}',
+  tags: ['Projects'],
+  summary: 'Atualizar status de fluxo no projeto (nome, cor, limite WIP, posição)',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string(), statusId: z.string() }),
+    body: { content: { 'application/json': { schema: UpdateWorkflowStatusRequestSchema } } },
+  },
+  responses: {
+    200: {
+      description: 'Status atualizado',
+      content: { 'application/json': { schema: WorkflowStatusSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/v1/projects/{id}/statuses/{statusId}',
+  tags: ['Projects'],
+  summary: 'Excluir status de fluxo do projeto (apenas se não houver tarefas associadas)',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string(), statusId: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Status excluído',
+      content: { 'application/json': { schema: MessageResponseSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/projects/{id}/statuses/reorder',
+  tags: ['Projects'],
+  summary: 'Reordenar colunas de status de fluxo do projeto',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: ReorderWorkflowStatusesRequestSchema } } },
+  },
+  responses: {
+    200: {
+      description: 'Lista de status reordenada',
+      content: { 'application/json': { schema: z.array(WorkflowStatusSchema) } },
     },
   },
 });

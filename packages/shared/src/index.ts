@@ -10,5 +10,6 @@ export * from './schemas/auth.js';
 export * from './schemas/workspace.js';
 export * from './schemas/project.js';
 export * from './schemas/task.js';
+export * from './schemas/realtime.js';
 export * from './types/index.js';
 export { z };

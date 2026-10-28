@@ -8,6 +8,8 @@ import {
   SavedViewConfigDto,
   StatusCategory,
   UpdateProjectRequest,
+  UpdateWorkflowStatusRequest,
+  WorkflowStatusDto,
   WorkspaceRole,
 } from '@fluxo/shared';
 import { Prisma } from '@prisma/client';
@@ -16,6 +18,7 @@ import {
   ALL_WORKSPACE_ROLES,
   MEMBER_WORKSPACE_ROLES,
 } from '../../middleware/rbac.middleware.js';
+import { socketEmitter } from '../../realtime/socket.emitter.js';
 import { projectsRepository } from './projects.repository.js';
 
 async function verifyWorkspaceAccess(
@@ -268,7 +271,7 @@ export const projectsService = {
       color: input.color ?? '#64748B',
     });
 
-    return {
+    const statusDto: WorkflowStatusDto = {
       id: created.id,
       projectId: created.projectId,
       name: created.name,
@@ -279,6 +282,123 @@ export const projectsService = {
       createdAt: created.createdAt.toISOString(),
       updatedAt: created.updatedAt.toISOString(),
     };
+
+    socketEmitter.statusCreated(projectId, statusDto);
+
+    return statusDto;
+  },
+
+  async updateStatus(
+    userId: string,
+    projectId: string,
+    statusId: string,
+    input: UpdateWorkflowStatusRequest,
+  ): Promise<WorkflowStatusDto> {
+    const project = await projectsRepository.findById(projectId);
+    if (!project || project.deletedAt) {
+      throw createHttpError(404, 'PROJECT_NOT_FOUND', 'Projeto não encontrado');
+    }
+
+    await verifyWorkspaceAccess(userId, project.workspaceId, MEMBER_WORKSPACE_ROLES);
+
+    const status = await projectsRepository.findStatusById(statusId);
+    if (!status || status.projectId !== projectId) {
+      throw createHttpError(404, 'STATUS_NOT_FOUND', 'Status não encontrado no projeto');
+    }
+
+    const updated = await projectsRepository.updateStatus(statusId, {
+      name: input.name,
+      category: input.category,
+      position: input.position,
+      wipLimit: input.wipLimit !== undefined ? input.wipLimit : undefined,
+      color: input.color !== undefined ? input.color : undefined,
+    });
+
+    const statusDto: WorkflowStatusDto = {
+      id: updated.id,
+      projectId: updated.projectId,
+      name: updated.name,
+      category: updated.category as StatusCategory,
+      position: updated.position,
+      wipLimit: updated.wipLimit,
+      color: updated.color,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    };
+
+    socketEmitter.statusUpdated(projectId, statusDto);
+
+    return statusDto;
+  },
+
+  async deleteStatus(userId: string, projectId: string, statusId: string) {
+    const project = await projectsRepository.findById(projectId);
+    if (!project || project.deletedAt) {
+      throw createHttpError(404, 'PROJECT_NOT_FOUND', 'Projeto não encontrado');
+    }
+
+    await verifyWorkspaceAccess(userId, project.workspaceId, MEMBER_WORKSPACE_ROLES);
+
+    const status = await projectsRepository.findStatusById(statusId);
+    if (!status || status.projectId !== projectId) {
+      throw createHttpError(404, 'STATUS_NOT_FOUND', 'Status não encontrado no projeto');
+    }
+
+    const allStatuses = await projectsRepository.listStatuses(projectId);
+    if (allStatuses.length <= 1) {
+      throw createHttpError(
+        400,
+        'CANNOT_DELETE_LAST_STATUS',
+        'O projeto deve ter ao menos um status de fluxo ativo',
+      );
+    }
+
+    const tasksCount = await projectsRepository.countTasksByStatus(statusId);
+    if (tasksCount > 0) {
+      throw createHttpError(
+        400,
+        'STATUS_IN_USE',
+        `Não é possível excluir um status contendo ${tasksCount} tarefa(s). Mova as tarefas antes de excluí-lo.`,
+      );
+    }
+
+    await projectsRepository.deleteStatus(statusId);
+
+    socketEmitter.statusDeleted(projectId, {
+      statusId,
+      projectId,
+      actorId: userId,
+    });
+
+    return { message: 'Status removido com sucesso' };
+  },
+
+  async reorderStatuses(userId: string, projectId: string, statusIds: string[]) {
+    const project = await projectsRepository.findById(projectId);
+    if (!project || project.deletedAt) {
+      throw createHttpError(404, 'PROJECT_NOT_FOUND', 'Projeto não encontrado');
+    }
+
+    await verifyWorkspaceAccess(userId, project.workspaceId, MEMBER_WORKSPACE_ROLES);
+
+    const reordered = await projectsRepository.reorderStatuses(projectId, statusIds);
+    const dtos: WorkflowStatusDto[] = reordered.map((s) => ({
+      id: s.id,
+      projectId: s.projectId,
+      name: s.name,
+      category: s.category as StatusCategory,
+      position: s.position,
+      wipLimit: s.wipLimit,
+      color: s.color,
+      createdAt: s.createdAt.toISOString(),
+      updatedAt: s.updatedAt.toISOString(),
+    }));
+
+    for (const s of dtos) {
+      socketEmitter.statusUpdated(projectId, s);
+    }
+
+    return dtos;
   },
 
   // Visões Salvas (SavedViews)

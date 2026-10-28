@@ -4,7 +4,9 @@ import {
   CreateProjectRequestSchema,
   CreateSavedViewRequestSchema,
   CreateWorkflowStatusRequestSchema,
+  ReorderWorkflowStatusesRequestSchema,
   UpdateProjectRequestSchema,
+  UpdateWorkflowStatusRequestSchema,
 } from '@fluxo/shared';
 import { requireAuth } from '../../middleware/auth.middleware.js';
 import { validateRequest } from '../../middleware/validate.middleware.js';
@@ -56,6 +58,26 @@ projectsRouter.post(
   requireAuth,
   validateRequest({ body: CreateWorkflowStatusRequestSchema }),
   projectsController.createStatus,
+);
+
+projectsRouter.post(
+  '/projects/:id/statuses/reorder',
+  requireAuth,
+  validateRequest({ body: ReorderWorkflowStatusesRequestSchema }),
+  projectsController.reorderStatuses,
+);
+
+projectsRouter.patch(
+  '/projects/:id/statuses/:statusId',
+  requireAuth,
+  validateRequest({ body: UpdateWorkflowStatusRequestSchema }),
+  projectsController.updateStatus,
+);
+
+projectsRouter.delete(
+  '/projects/:id/statuses/:statusId',
+  requireAuth,
+  projectsController.deleteStatus,
 );
 
 // Visões Salvas do projeto (SavedViews)
