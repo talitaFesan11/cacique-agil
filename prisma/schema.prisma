@@ -4,7 +4,8 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 // -------------------------------------------------------------
@@ -67,30 +68,34 @@ enum KeyResultType {
 // -------------------------------------------------------------
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String
-  avatarUrl     String?
-  passwordHash  String
-  locale        String         @default("pt-BR")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  memberships   Membership[]
-  timeEntries   TimeEntry[]
-  comments      Comment[]
-  notifications Notification[]
-  savedViews    SavedView[]
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  name                String
+  avatarUrl           String?
+  passwordHash        String
+  locale              String               @default("pt-BR")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  memberships         Membership[]
+  timeEntries         TimeEntry[]
+  comments            Comment[]
+  notifications       Notification[]
+  savedViews          SavedView[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  sentInvites         WorkspaceInvite[]    @relation("InvitedByUser")
 
   @@map("users")
 }
 
 model Workspace {
-  id           String        @id @default(cuid())
+  id           String            @id @default(cuid())
   name         String
-  slug         String        @unique
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  slug         String            @unique
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
   memberships  Membership[]
+  invites      WorkspaceInvite[]
   projects     Project[]
   labels       Label[]
   documents    Document[]
@@ -116,6 +121,57 @@ model Membership {
   @@unique([userId, workspaceId])
   @@index([workspaceId])
   @@map("memberships")
+}
+
+model RefreshToken {
+  id                  String    @id @default(cuid())
+  userId              String
+  tokenHash           String    @unique
+  expiresAt           DateTime
+  revokedAt           DateTime?
+  replacedByTokenHash String?
+  userAgent           String?
+  ipAddress           String?
+  createdAt           DateTime  @default(now())
+
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model WorkspaceInvite {
+  id          String        @id @default(cuid())
+  workspaceId String
+  email       String
+  role        WorkspaceRole @default(MEMBER)
+  token       String        @unique
+  invitedById String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime      @default(now())
+
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy   User          @relation("InvitedByUser", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, email])
+  @@map("workspace_invites")
 }
 
 // -------------------------------------------------------------

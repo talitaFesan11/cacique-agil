@@ -17,8 +17,12 @@ export const errorHandler = (
 ) => {
   const requestId = (req.headers['x-request-id'] as string) || 'unknown';
 
-  if (err instanceof ZodError) {
-    const details = err.errors.map((e) => ({
+  if (
+    err instanceof ZodError ||
+    (err && err.name === 'ZodError' && Array.isArray((err as ZodError).errors))
+  ) {
+    const zodErr = err as ZodError;
+    const details = zodErr.errors.map((e) => ({
       path: e.path.join('.'),
       message: e.message,
     }));

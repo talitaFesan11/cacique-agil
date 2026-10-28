@@ -27,6 +27,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
           component="main"
           sx={{
             flexGrow: 1,
+            minWidth: 0,
             p: { xs: 2, md: 4 },
             backgroundColor: 'background.default',
             minHeight: 'calc(100vh - 64px)',

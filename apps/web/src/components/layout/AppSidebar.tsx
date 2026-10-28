@@ -18,7 +18,9 @@ import GestureIcon from '@mui/icons-material/Gesture';
 import FlagIcon from '@mui/icons-material/Flag';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuthStore } from '@/features/auth/auth-store';
 
 const DRAWER_WIDTH = 240;
 
@@ -30,40 +32,91 @@ interface AppSidebarProps {
 
 export function AppSidebar({ open, onClose, mobileOpen }: AppSidebarProps) {
   const t = useTranslations('nav');
+  const locale = useLocale();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const workspaces = useAuthStore((s) => s.workspaces);
+  const activeWorkspaceId = useAuthStore((s) => s.activeWorkspaceId);
+
+  const activeWorkspace =
+    workspaces.find((w) => w.id === activeWorkspaceId || w.slug === activeWorkspaceId) ||
+    workspaces[0];
+
+  const settingsHref = activeWorkspace
+    ? `/${locale}/workspaces/${activeWorkspace.slug}/settings`
+    : `/${locale}/login`;
 
   const navItems = [
-    { key: 'dashboard', label: t('dashboard'), icon: <DashboardIcon /> },
-    { key: 'projects', label: t('projects'), icon: <FolderIcon /> },
-    { key: 'tasks', label: t('tasks'), icon: <CheckCircleOutlineIcon /> },
-    { key: 'kanban', label: t('kanban'), icon: <ViewKanbanIcon /> },
-    { key: 'timeline', label: t('timeline'), icon: <TimelineIcon /> },
-    { key: 'docs', label: t('docs'), icon: <DescriptionIcon /> },
-    { key: 'whiteboards', label: t('whiteboards'), icon: <GestureIcon /> },
-    { key: 'goals', label: t('goals'), icon: <FlagIcon /> },
-    { key: 'reports', label: t('reports'), icon: <BarChartIcon /> },
-    { key: 'settings', label: t('settings'), icon: <SettingsIcon /> },
+    { key: 'dashboard', label: t('dashboard'), icon: <DashboardIcon />, href: `/${locale}` },
+    {
+      key: 'projects',
+      label: t('projects'),
+      icon: <FolderIcon />,
+      href: `/${locale}/projects`,
+    },
+    {
+      key: 'tasks',
+      label: t('tasks'),
+      icon: <CheckCircleOutlineIcon />,
+      href: `/${locale}/projects`,
+    },
+    {
+      key: 'kanban',
+      label: t('kanban'),
+      icon: <ViewKanbanIcon />,
+      href: `/${locale}/projects`,
+    },
+    { key: 'timeline', label: t('timeline'), icon: <TimelineIcon />, href: `/${locale}` },
+    { key: 'docs', label: t('docs'), icon: <DescriptionIcon />, href: `/${locale}` },
+    { key: 'whiteboards', label: t('whiteboards'), icon: <GestureIcon />, href: `/${locale}` },
+    { key: 'goals', label: t('goals'), icon: <FlagIcon />, href: `/${locale}` },
+    { key: 'reports', label: t('reports'), icon: <BarChartIcon />, href: `/${locale}` },
+    {
+      key: 'settings',
+      label: t('settings'),
+      icon: <SettingsIcon />,
+      href: settingsHref,
+    },
   ];
 
   const drawerContent = (
     <Box sx={{ overflow: 'auto', pt: 2 }}>
       <List>
-        {navItems.map((item, index) => (
-          <ListItem key={item.key} disablePadding>
-            <ListItemButton selected={index === 0}>
-              <ListItemIcon sx={{ minWidth: 40, color: index === 0 ? 'primary.main' : 'inherit' }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.label}
-                primaryTypographyProps={{
-                  fontSize: '0.875rem',
-                  fontWeight: index === 0 ? 600 : 400,
-                  color: index === 0 ? 'primary.main' : 'inherit',
+        {navItems.map((item) => {
+          const isSelected =
+            item.key === 'settings'
+              ? pathname?.includes('/settings')
+              : item.key === 'projects'
+                ? pathname?.includes('/projects')
+                : item.key === 'dashboard' && pathname === `/${locale}`;
+
+          return (
+            <ListItem key={item.key} disablePadding>
+              <ListItemButton
+                selected={Boolean(isSelected)}
+                onClick={() => {
+                  router.push(item.href);
+                  onClose();
                 }}
-              />
-            </ListItemButton>
-          </ListItem>
-        ))}
+              >
+                <ListItemIcon
+                  sx={{ minWidth: 40, color: isSelected ? 'primary.main' : 'inherit' }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontSize: '0.875rem',
+                    fontWeight: isSelected ? 600 : 400,
+                    color: isSelected ? 'primary.main' : 'inherit',
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
     </Box>
   );

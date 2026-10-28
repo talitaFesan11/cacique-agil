@@ -1,4 +1,5 @@
 import express, { Express } from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
@@ -10,6 +11,10 @@ import { rateLimiter } from './middleware/rate-limiter.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { notFoundHandler } from './middleware/not-found.js';
 import { healthRouter } from './modules/health/health.routes.js';
+import { authRouter } from './modules/auth/auth.routes.js';
+import { workspacesRouter } from './modules/workspaces/workspaces.routes.js';
+import { projectsRouter } from './modules/projects/projects.routes.js';
+import { tasksRouter } from './modules/tasks/tasks.routes.js';
 import { getOpenApiDocumentation } from './openapi/openapi.js';
 
 export const createApp = (): Express => {
@@ -47,12 +52,21 @@ export const createApp = (): Express => {
     );
   }
 
+  app.use(cookieParser());
   app.use(express.json({ limit: '10mb' }));
   app.use(rateLimiter);
 
   // Health and Readiness (tanto na raiz quanto sob /api/v1 para compatibilidade)
   app.use(healthRouter);
   app.use('/api/v1', healthRouter);
+
+  // Rotas da Fase 1: Autenticação e Workspaces
+  app.use('/api/v1', authRouter);
+  app.use('/api/v1', workspacesRouter);
+
+  // Rotas da Fase 2: Projetos, Status, Visões Salvas, Tarefas, Checklists, Comentários e Anexos
+  app.use('/api/v1', projectsRouter);
+  app.use('/api/v1', tasksRouter);
 
   // Documentação OpenAPI / Swagger UI
   const swaggerDocs = getOpenApiDocumentation();
