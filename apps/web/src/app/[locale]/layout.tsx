@@ -34,7 +34,7 @@ export default async function LocaleLayout({
         <link rel="icon" href="/favicon.ico" />
         <title>FluxoPro — Plataforma de Gerenciamento e Fluxo de Projetos</title>
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <NextIntlClientProvider messages={messages} locale={locale}>
           <QueryProvider>
             <AuthProvider>
