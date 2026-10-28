@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "FluxoPro",
+    "appName": "Cacique Agil",
     "tagline": "Project Flow & Management Platform",
     "theme": {
       "toggle": "Toggle light/dark theme",
@@ -43,7 +43,7 @@
     "settings": "Settings & Members"
   },
   "auth": {
-    "loginTitle": "Sign in to FluxoPro",
+    "loginTitle": "Sign in to Cacique Agil",
     "loginSubtitle": "Access your account to manage projects, documents, and team goals.",
     "registerTitle": "Create your account",
     "registerSubtitle": "Start for free with a dedicated workspace for your team.",
@@ -248,7 +248,7 @@
     "shortcutHelp": "Show this keyboard shortcuts help dialog"
   },
   "home": {
-    "welcome": "Welcome to FluxoPro",
+    "welcome": "Welcome to Cacique Agil",
     "foundationDescription": "Phase 2 active: Full Project & Task management in List View, Detail Drawer, Subtasks, Checklists, Labels, Attachments, @mention Comments, and Saved Views.",
     "phaseBadge": "Phase 2 Completed — Projects & Tasks (List View)",
     "activeWorkspaceCardTitle": "Multi-Tenant Context & Projects",

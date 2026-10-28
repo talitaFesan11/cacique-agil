@@ -81,7 +81,7 @@ async function main() {
   // 3. Criar Workspaces
   const defaultWorkspace = await prisma.workspace.create({
     data: {
-      name: 'FluxoPro Org',
+      name: 'Cacique Agil Org',
       slug: 'fluxopro-org',
     },
   });
@@ -164,7 +164,7 @@ async function main() {
       workspaceId: defaultWorkspace.id,
       name: 'Lançamento v1',
       key: 'FLX',
-      description: 'Projeto inaugural da plataforma FluxoPro com visões integradas',
+      description: 'Projeto inaugural da plataforma Cacique Agil com visões integradas',
       status: ProjectStatus.ACTIVE,
       color: '#2563EB',
       startDate: new Date('2026-10-01T00:00:00.000Z'),

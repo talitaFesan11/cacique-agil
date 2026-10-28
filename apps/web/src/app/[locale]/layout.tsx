@@ -32,7 +32,7 @@ export default async function LocaleLayout({
       <head>
         <meta name="viewport" content="initial-scale=1, width=device-width" />
         <link rel="icon" href="/favicon.ico" />
-        <title>FluxoPro — Plataforma de Gerenciamento e Fluxo de Projetos</title>
+        <title>Cacique Agil — Plataforma de Gerenciamento e Fluxo de Projetos</title>
       </head>
       <body suppressHydrationWarning>
         <NextIntlClientProvider messages={messages} locale={locale}>

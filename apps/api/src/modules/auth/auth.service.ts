@@ -296,9 +296,9 @@ export const authService = {
 
     await mailer.sendMail({
       to: user.email,
-      subject: 'FluxoPro — Recuperação de Senha',
+      subject: 'Cacique Agil — Recuperação de Senha',
       text: `Olá ${user.name}, acesse o link para redefinir sua senha: ${resetUrl}`,
-      html: `<p>Olá <strong>${user.name}</strong>,</p><p>Recebemos uma solicitação para redefinir sua senha no FluxoPro.</p><p><a href="${resetUrl}">Clique aqui para criar uma nova senha</a></p><p>Este link expira em 1 hora.</p>`,
+      html: `<p>Olá <strong>${user.name}</strong>,</p><p>Recebemos uma solicitação para redefinir sua senha no Cacique Agil.</p><p><a href="${resetUrl}">Clique aqui para criar uma nova senha</a></p><p>Este link expira em 1 hora.</p>`,
     });
 
     return genericResponse;

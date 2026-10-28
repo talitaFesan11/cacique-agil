@@ -38,7 +38,7 @@ describe('Fase 1 UI: Login & WorkspaceSelector', () => {
       workspaces: [
         {
           id: 'ws1',
-          name: 'FluxoPro Org',
+          name: 'Cacique Agil Org',
           slug: 'fluxopro-org',
           role: WorkspaceRole.OWNER,
           createdAt: new Date().toISOString(),
@@ -55,7 +55,7 @@ describe('Fase 1 UI: Login & WorkspaceSelector', () => {
 
     render(<WorkspaceSelector />);
 
-    expect(screen.getByText('FluxoPro Org')).toBeInTheDocument();
+    expect(screen.getByText('Cacique Agil Org')).toBeInTheDocument();
     expect(screen.getByText('OWNER')).toBeInTheDocument();
   });
 });

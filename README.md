@@ -1,4 +1,4 @@
-# FluxoPro — Plataforma de Gerenciamento e Fluxo de Projetos
+# Cacique Agil — Plataforma de Gerenciamento e Fluxo de Projetos
 
 Plataforma unificada de produtividade e gestão de projetos (Tarefas, Kanban, Gantt, Cronograma, Documentos Colaborativos, Quadros Brancos, OKRs e Dashboards) construída em arquitetura monorepo (`pnpm workspaces`) com **Next.js 15 (App Router) + MUI v6**, **Node.js + Express + TypeScript**, **Prisma + PostgreSQL 16** e **Zod + OpenAPI 3.0**.
 
@@ -57,9 +57,9 @@ Plataforma unificada de produtividade e gestão de projetos (Tarefas, Kanban, Ga
 
 | Papel / Contexto | E-mail | Senha | Workspace |
 | :--- | :--- | :--- | :--- |
-| **Owner** | `admin@fluxopro.local` | `Senha@123` | `FluxoPro Org` (`fluxopro-org`) e `Engenharia & Produto` (`ADMIN`) |
-| **Member** | `membro@fluxopro.local` | `Senha@123` | `FluxoPro Org` (`fluxopro-org`) |
-| **Guest** | `convidado@fluxopro.local` | `Senha@123` | `FluxoPro Org` (`fluxopro-org`) |
+| **Owner** | `admin@fluxopro.local` | `Senha@123` | `Cacique Agil Org` (`fluxopro-org`) e `Engenharia & Produto` (`ADMIN`) |
+| **Member** | `membro@fluxopro.local` | `Senha@123` | `Cacique Agil Org` (`fluxopro-org`) |
+| **Guest** | `convidado@fluxopro.local` | `Senha@123` | `Cacique Agil Org` (`fluxopro-org`) |
 | **Tenant Isolado** | `externo@acme.local` | `Senha@123` | `Acme Corp (Isolado)` (`acme-corp`) |
 
 ---

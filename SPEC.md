@@ -16,7 +16,7 @@ _Especificação técnica e funcional para desenvolvimento agêntico no Google A
 
 ## 1. Visão geral
 
-**Nome provisório:** FluxoPro (substituível).
+**Nome do projeto:** Cacique Agil.
 
 **Resumo:** plataforma única de produtividade que une tarefas, documentos, quadros brancos, metas, gráficos, Gantt, cronograma e Kanban sobre os mesmos dados. O diferencial é a **integração entre módulos**: uma tarefa pode ser vista como card no Kanban, barra no Gantt, item na linha do tempo, ser citada em um documento, estar ligada a um objeto no quadro branco e contribuir para o progresso de uma meta.
 

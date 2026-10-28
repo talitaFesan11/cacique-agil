@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "FluxoPro",
+    "appName": "Cacique Agil",
     "tagline": "Plataforma de Gerenciamento e Fluxo de Projetos",
     "theme": {
       "toggle": "Alternar tema claro/escuro",
@@ -43,7 +43,7 @@
     "settings": "Configurações & Membros"
   },
   "auth": {
-    "loginTitle": "Entrar no FluxoPro",
+    "loginTitle": "Entrar no Cacique Agil",
     "loginSubtitle": "Acesse sua conta para gerenciar projetos, documentos e metas em equipe.",
     "registerTitle": "Criar sua conta",
     "registerSubtitle": "Comece gratuitamente com um workspace exclusivo para sua equipe.",
@@ -248,7 +248,7 @@
     "shortcutHelp": "Exibir esta janela de ajuda de atalhos"
   },
   "home": {
-    "welcome": "Bem-vindo ao FluxoPro",
+    "welcome": "Bem-vindo ao Cacique Agil",
     "foundationDescription": "Fase 2 ativa: Gestão completa de Projetos e Tarefas na Visão Lista, Drawer de Detalhes, Subtarefas, Checklists, Etiquetas, Anexos, Comentários com @menções e Visões Salvas.",
     "phaseBadge": "Fase 2 Concluída — Projetos & Tarefas (Visão Lista)",
     "activeWorkspaceCardTitle": "Contexto Multi-Tenant & Projetos",

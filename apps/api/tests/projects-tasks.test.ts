@@ -43,7 +43,7 @@ describe('Fase 2: Projetos, Tarefas, Checklists, Comentários, Etiquetas, Anexos
       .set('Authorization', `Bearer ${owner.accessToken}`)
       .send({
         workspaceId: wsId,
-        name: 'Plataforma FluxoPro',
+        name: 'Plataforma Cacique Agil',
         key: 'flx',
         description: 'Projeto principal da Fase 2',
         status: 'ACTIVE',

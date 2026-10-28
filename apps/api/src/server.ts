@@ -7,7 +7,7 @@ const app = createApp();
 const PORT = env.PORT;
 
 const server = app.listen(PORT, () => {
-  logger.info(`Servidor FluxoPro API rodando na porta ${PORT} [${env.NODE_ENV}]`);
+  logger.info(`Servidor Cacique Agil API rodando na porta ${PORT} [${env.NODE_ENV}]`);
   logger.info(`Health check: http://localhost:${PORT}/health`);
   logger.info(`OpenAPI docs: http://localhost:${PORT}/api/docs`);
 });

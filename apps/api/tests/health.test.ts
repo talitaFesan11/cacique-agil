@@ -64,7 +64,7 @@ describe('Health Endpoints', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.openapi).toBe('3.0.0');
-    expect(res.body.info.title).toBe('FluxoPro API');
+    expect(res.body.info.title).toBe('Cacique Agil API');
     expect(res.body.paths['/health']).toBeDefined();
   });
 

@@ -263,9 +263,9 @@ export const workspacesService = {
 
     await mailer.sendMail({
       to: invite.email,
-      subject: `Convite para participar do workspace ${invite.workspace.name} no FluxoPro`,
+      subject: `Convite para participar do workspace ${invite.workspace.name} no Cacique Agil`,
       text: `Você foi convidado por ${invite.invitedBy.name} para entrar no workspace "${invite.workspace.name}" com o papel ${invite.role}. Acesse: ${inviteUrl}`,
-      html: `<p>Olá,</p><p><strong>${invite.invitedBy.name}</strong> convidou você para colaborar no workspace <strong>${invite.workspace.name}</strong> no FluxoPro com o papel <code>${invite.role}</code>.</p><p><a href="${inviteUrl}">Aceitar Convite</a></p>`,
+      html: `<p>Olá,</p><p><strong>${invite.invitedBy.name}</strong> convidou você para colaborar no workspace <strong>${invite.workspace.name}</strong> no Cacique Agil com o papel <code>${invite.role}</code>.</p><p><a href="${inviteUrl}">Aceitar Convite</a></p>`,
     });
 
     return {

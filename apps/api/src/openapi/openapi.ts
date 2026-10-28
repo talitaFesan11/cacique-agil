@@ -825,10 +825,10 @@ export const getOpenApiDocumentation = () => {
   return generator.generateDocument({
     openapi: '3.0.0',
     info: {
-      title: 'FluxoPro API',
+      title: 'Cacique Agil API',
       version: '1.0.0',
       description:
-        'Documentação da API REST do FluxoPro (Plataforma de Gerenciamento e Fluxo de Projetos)',
+        'Documentação da API REST do Cacique Agil (Plataforma de Gerenciamento e Fluxo de Projetos)',
     },
     servers: [
       {
