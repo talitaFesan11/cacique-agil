@@ -4,6 +4,7 @@ import { logger } from '../config/logger.js';
 import { RealtimeUserPresence } from '@fluxo/shared';
 import { AuthenticatedSocket } from './socket.auth.js';
 import { yjsService } from './yjs.service.js';
+import { whiteboardYjsService } from './whiteboard-yjs.service.js';
 
 // Project presence
 // Map: projectId -> (userId -> RealtimeUserPresence)
@@ -15,6 +16,11 @@ const userSocketCount = new Map<string, Map<string, Set<string>>>();
 const activeDocPresence = new Map<string, Map<string, RealtimeUserPresence>>();
 const docUserSocketCount = new Map<string, Map<string, Set<string>>>();
 
+// Whiteboard presence
+// Map: boardId -> (userId -> RealtimeUserPresence)
+const activeBoardPresence = new Map<string, Map<string, RealtimeUserPresence>>();
+const boardUserSocketCount = new Map<string, Map<string, Set<string>>>();
+
 export const getProjectPresenceList = (projectId: string): RealtimeUserPresence[] => {
   const usersMap = activePresence.get(projectId);
   if (!usersMap) return [];
@@ -23,6 +29,12 @@ export const getProjectPresenceList = (projectId: string): RealtimeUserPresence[
 
 export const getDocPresenceList = (docId: string): RealtimeUserPresence[] => {
   const usersMap = activeDocPresence.get(docId);
+  if (!usersMap) return [];
+  return Array.from(usersMap.values());
+};
+
+export const getBoardPresenceList = (boardId: string): RealtimeUserPresence[] => {
+  const usersMap = activeBoardPresence.get(boardId);
   if (!usersMap) return [];
   return Array.from(usersMap.values());
 };
@@ -213,6 +225,117 @@ export const registerRoomHandlers = (io: Server, socket: AuthenticatedSocket) =>
     }
   });
 
+  // Whiteboard Room Handlers (Yjs & Collaborative Canvas)
+  socket.on('join-whiteboard', async (data: { whiteboardId: string }) => {
+    try {
+      const { whiteboardId } = data;
+      if (!whiteboardId || typeof whiteboardId !== 'string') return;
+
+      const board = await prisma.whiteboard.findUnique({
+        where: { id: whiteboardId },
+        select: { id: true, workspaceId: true, deletedAt: true },
+      });
+
+      if (!board || board.deletedAt) {
+        socket.emit('error', { code: 'WHITEBOARD_NOT_FOUND', message: 'Quadro branco não encontrado' });
+        return;
+      }
+
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_workspaceId: { userId: user.id, workspaceId: board.workspaceId },
+        },
+      });
+
+      if (!membership) {
+        socket.emit('error', { code: 'FORBIDDEN', message: 'Acesso negado ao quadro branco' });
+        return;
+      }
+
+      const roomName = `whiteboard:${whiteboardId}`;
+      await socket.join(roomName);
+      socket.data.whiteboardRooms?.add(whiteboardId);
+
+      // Presence
+      if (!activeBoardPresence.has(whiteboardId)) activeBoardPresence.set(whiteboardId, new Map());
+      if (!boardUserSocketCount.has(whiteboardId)) boardUserSocketCount.set(whiteboardId, new Map());
+
+      const socketsForUser = boardUserSocketCount.get(whiteboardId)!;
+      if (!socketsForUser.has(user.id)) socketsForUser.set(user.id, new Set());
+      socketsForUser.get(user.id)!.add(socket.id);
+
+      const now = new Date().toISOString();
+      const presenceEntry: RealtimeUserPresence = {
+        userId: user.id,
+        name: user.name,
+        avatarUrl: null,
+        joinedAt: now,
+        lastActive: now,
+      };
+
+      activeBoardPresence.get(whiteboardId)!.set(user.id, presenceEntry);
+
+      // Emite presença do quadro
+      io.to(roomName).emit('whiteboard-presence.update', {
+        whiteboardId,
+        users: getBoardPresenceList(whiteboardId),
+      });
+
+      // Envia snapshot inicial do Yjs para o cliente conectado
+      const binaryState = await whiteboardYjsService.getBoardState(whiteboardId);
+      socket.emit('whiteboard-sync-init', {
+        whiteboardId,
+        update: Buffer.from(binaryState),
+      });
+
+      logger.info({ userId: user.id, whiteboardId, socketId: socket.id }, 'Usuário entrou na sala do quadro branco');
+    } catch (error) {
+      logger.error({ error, userId: user.id }, 'Erro ao entrar na sala do quadro branco');
+    }
+  });
+
+  socket.on('whiteboard-update', async (data: { whiteboardId: string; update: Buffer | Uint8Array }) => {
+    try {
+      const { whiteboardId, update } = data;
+      if (!whiteboardId || !update) return;
+
+      const uint8Update = new Uint8Array(update);
+      await whiteboardYjsService.applyUpdate(whiteboardId, uint8Update);
+
+      // Propaga delta para os outros clientes na mesma sala
+      socket.to(`whiteboard:${whiteboardId}`).emit('whiteboard-update', {
+        whiteboardId,
+        update: Buffer.from(uint8Update),
+      });
+    } catch (error) {
+      logger.error({ error, userId: user.id }, 'Erro ao processar whiteboard-update Yjs');
+    }
+  });
+
+  socket.on('whiteboard-awareness', (data: { whiteboardId: string; awarenessUpdate: Buffer | Uint8Array }) => {
+    try {
+      const { whiteboardId, awarenessUpdate } = data;
+      if (!whiteboardId || !awarenessUpdate) return;
+
+      socket.to(`whiteboard:${whiteboardId}`).emit('whiteboard-awareness', {
+        whiteboardId,
+        awarenessUpdate: Buffer.from(awarenessUpdate),
+      });
+    } catch (error) {
+      logger.error({ error, userId: user.id }, 'Erro ao retransmitir whiteboard-awareness');
+    }
+  });
+
+  socket.on('leave-whiteboard', (data: { whiteboardId: string }) => {
+    try {
+      const { whiteboardId } = data;
+      if (!whiteboardId) return;
+      handleBoardLeave(io, socket, whiteboardId);
+    } catch (error) {
+      logger.error({ error }, 'Erro ao sair da sala do quadro branco');
+    }
+  });
+
   // Disconnect
   socket.on('disconnect', () => {
     try {
@@ -224,6 +347,11 @@ export const registerRoomHandlers = (io: Server, socket: AuthenticatedSocket) =>
       if (socket.data.docRooms) {
         for (const docId of socket.data.docRooms) {
           handleDocLeave(io, socket, docId);
+        }
+      }
+      if (socket.data.whiteboardRooms) {
+        for (const whiteboardId of socket.data.whiteboardRooms) {
+          handleBoardLeave(io, socket, whiteboardId);
         }
       }
       logger.info({ userId: user.id, socketId: socket.id }, 'Socket desconectado');
@@ -290,5 +418,38 @@ const handleDocLeave = (
   const remaining = docUserSocketCount.get(docId);
   if (!remaining || remaining.size === 0) {
     yjsService.flush(docId).catch(() => {});
+  }
+};
+
+const handleBoardLeave = (
+  io: Server,
+  socket: AuthenticatedSocket,
+  whiteboardId: string,
+) => {
+  const user = socket.data.user;
+  if (!user) return;
+
+  const roomName = `whiteboard:${whiteboardId}`;
+  socket.leave(roomName);
+  socket.data.whiteboardRooms?.delete(whiteboardId);
+
+  const socketsForUser = boardUserSocketCount.get(whiteboardId)?.get(user.id);
+  if (socketsForUser) {
+    socketsForUser.delete(socket.id);
+    if (socketsForUser.size === 0) {
+      boardUserSocketCount.get(whiteboardId)?.delete(user.id);
+      activeBoardPresence.get(whiteboardId)?.delete(user.id);
+
+      io.to(roomName).emit('whiteboard-presence.update', {
+        whiteboardId,
+        users: getBoardPresenceList(whiteboardId),
+      });
+    }
+  }
+
+  // Persiste no banco ao esvaziar a sala
+  const remaining = boardUserSocketCount.get(whiteboardId);
+  if (!remaining || remaining.size === 0) {
+    whiteboardYjsService.flush(whiteboardId).catch(() => {});
   }
 };

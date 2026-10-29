@@ -87,6 +87,7 @@ model User {
   createdDocs         Document[]           @relation("DocAuthor")
   documentFavorites   DocumentFavorite[]
   docVersions         DocumentVersion[]
+  createdWhiteboards  Whiteboard[]         @relation("WhiteboardAuthor")
 
   @@map("users")
 }
@@ -501,20 +502,29 @@ model DocumentFavorite {
 }
 
 model Whiteboard {
-  id           String    @id @default(cuid())
-  workspaceId  String
-  projectId    String?
-  title        String
-  yjsState     Bytes?
-  thumbnailUrl String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id               String       @id @default(cuid())
+  workspaceId      String
+  projectId        String?
+  title            String
+  description      String?
+  yjsState         Bytes?
+  elementsJson     Json?
+  thumbnailUrl     String?
+  isTemplate       Boolean      @default(false)
+  templateCategory String?
+  createdById      String?
+  deletedAt        DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
-  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  project      Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  workspace        Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project          Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy        User?        @relation("WhiteboardAuthor", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([workspaceId])
   @@index([projectId])
+  @@index([isTemplate])
+  @@index([deletedAt])
   @@map("whiteboards")
 }
 

@@ -18,6 +18,7 @@ import { tasksRouter } from './modules/tasks/tasks.routes.js';
 import dependenciesRouter from './modules/tasks/dependencies.routes.js';
 import baselinesRouter from './modules/tasks/baselines.routes.js';
 import { documentsRouter } from './modules/documents/documents.routes.js';
+import { whiteboardsRouter } from './modules/whiteboards/whiteboards.routes.js';
 import { getOpenApiDocumentation } from './openapi/openapi.js';
 
 export const createApp = (): Express => {
@@ -77,6 +78,9 @@ export const createApp = (): Express => {
 
   // Rotas da Fase 5: Documentos Colaborativos, Versões, Favoritos e Templates
   app.use('/api/v1', documentsRouter);
+
+  // Rotas da Fase 6: Quadros Brancos (Whiteboards) Colaborativos e Vínculos de Tarefas
+  app.use('/api/v1', whiteboardsRouter);
 
   // Documentação OpenAPI / Swagger UI
   const swaggerDocs = getOpenApiDocumentation();

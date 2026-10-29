@@ -30,7 +30,7 @@ import {
   WorkspaceRole,
 } from '@fluxo/shared';
 import { useAuthStore } from '@/features/auth/auth-store';
-import { documentsApi, projectsApi, tasksApi, workspacesApi } from '@/lib/api-client';
+import { documentsApi, projectsApi, tasksApi, whiteboardsApi, workspacesApi } from '@/lib/api-client';
 import {
   ActiveTaskFilters,
   TaskFiltersBar,
@@ -78,7 +78,7 @@ export default function ProjectTasksPage() {
     assigneeId: '',
     groupBy: 'status',
   });
-  const [activeTab, setActiveTab] = useState<'list' | 'kanban' | 'gantt' | 'calendar' | 'workload' | 'docs'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'kanban' | 'gantt' | 'calendar' | 'workload' | 'docs' | 'whiteboards'>('list');
   const [activeSavedViewId, setActiveSavedViewId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
@@ -90,8 +90,8 @@ export default function ProjectTasksPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      const view = urlParams.get('view') as 'list' | 'kanban' | 'gantt' | 'calendar' | 'workload' | 'docs' | null;
-      if (view && ['list', 'kanban', 'gantt', 'calendar', 'workload', 'docs'].includes(view)) {
+      const view = urlParams.get('view') as 'list' | 'kanban' | 'gantt' | 'calendar' | 'workload' | 'docs' | 'whiteboards' | null;
+      if (view && ['list', 'kanban', 'gantt', 'calendar', 'workload', 'docs', 'whiteboards'].includes(view)) {
         setActiveTab(view);
       }
     }
@@ -99,7 +99,7 @@ export default function ProjectTasksPage() {
 
   const handleTabChange = (
     _: React.SyntheticEvent,
-    nextTab: 'list' | 'kanban' | 'gantt' | 'calendar' | 'workload' | 'docs',
+    nextTab: 'list' | 'kanban' | 'gantt' | 'calendar' | 'workload' | 'docs' | 'whiteboards',
   ) => {
     setActiveTab(nextTab);
     if (typeof window !== 'undefined') {
@@ -127,6 +127,12 @@ export default function ProjectTasksPage() {
     queryKey: ['project-docs', projectId],
     queryFn: () => documentsApi.list(workspaceId, { projectId }),
     enabled: Boolean(workspaceId) && activeTab === 'docs',
+  });
+
+  const { data: projectWhiteboards = [], refetch: refetchProjectWhiteboards } = useQuery({
+    queryKey: ['project-whiteboards', projectId],
+    queryFn: () => whiteboardsApi.list(workspaceId, { projectId }),
+    enabled: Boolean(workspaceId) && activeTab === 'whiteboards',
   });
 
   const {
@@ -423,11 +429,11 @@ export default function ProjectTasksPage() {
             data-testid="tab-docs"
           />
           <Tab
-            value="whiteboard"
-            disabled
+            value="whiteboards"
             icon={<GestureIcon fontSize="small" />}
             iconPosition="start"
-            label={t('viewWhiteboard')}
+            label="Quadros"
+            data-testid="tab-whiteboards"
           />
         </Tabs>
       </Box>
@@ -586,6 +592,109 @@ export default function ProjectTasksPage() {
                   </Box>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                     Atualizado em {new Date(d.updatedAt).toLocaleDateString('pt-BR')}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+      ) : activeTab === 'whiteboards' ? (
+        <Box sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Quadros Brancos do Projeto ({projectWhiteboards.length})
+            </Typography>
+            {canWrite && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={async () => {
+                  try {
+                    const newBoard = await whiteboardsApi.create({
+                      workspaceId,
+                      projectId,
+                      title: 'Novo Quadro do Projeto',
+                    });
+                    refetchProjectWhiteboards();
+                    router.push(`/${locale}/whiteboards/${newBoard.id}`);
+                  } catch (err) {
+                    console.error('Erro ao criar quadro do projeto:', err);
+                  }
+                }}
+                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}
+                data-testid="create-project-whiteboard-btn"
+              >
+                Novo Quadro
+              </Button>
+            )}
+          </Box>
+
+          {projectWhiteboards.length === 0 ? (
+            <Box sx={{ p: 4, textAlign: 'center', bgcolor: 'background.paper', borderRadius: 2 }}>
+              <GestureIcon color="action" sx={{ fontSize: 48, mb: 1 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                Nenhum quadro associado a este projeto
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Crie mapas mentais, diagramas e notas adesivas vinculadas a este projeto.
+              </Typography>
+              {canWrite && (
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={async () => {
+                    const newBoard = await whiteboardsApi.create({
+                      workspaceId,
+                      projectId,
+                      title: 'Quadro do Projeto',
+                    });
+                    refetchProjectWhiteboards();
+                    router.push(`/${locale}/whiteboards/${newBoard.id}`);
+                  }}
+                  sx={{ textTransform: 'none' }}
+                >
+                  Criar Primeiro Quadro
+                </Button>
+              )}
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                gap: 2,
+              }}
+            >
+              {projectWhiteboards.map((b) => (
+                <Box
+                  key={b.id}
+                  data-testid={`project-whiteboard-card-${b.id}`}
+                  onClick={() => router.push(`/${locale}/whiteboards/${b.id}`)}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'background.paper',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                      borderColor: 'primary.main',
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                    <GestureIcon color="primary" />
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
+                      {b.title}
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    {b.elementsCount} elementos • Atualizado em {new Date(b.updatedAt).toLocaleDateString('pt-BR')}
                   </Typography>
                 </Box>
               ))}

@@ -16,6 +16,8 @@ export * from './schemas/baseline.js';
 export * from './schemas/gantt.js';
 export * from './schemas/workload.js';
 export * from './schemas/document.js';
+export * from './schemas/whiteboard.js';
+export * from './schemas/entity-link.js';
 export * from './utils/date-math.js';
 export * from './utils/cycle-detector.js';
 export * from './utils/cpm.js';

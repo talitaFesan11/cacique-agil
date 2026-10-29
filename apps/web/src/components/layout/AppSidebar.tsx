@@ -69,7 +69,7 @@ export function AppSidebar({ open, onClose, mobileOpen }: AppSidebarProps) {
     },
     { key: 'timeline', label: t('timeline'), icon: <TimelineIcon />, href: `/${locale}` },
     { key: 'docs', label: t('docs'), icon: <DescriptionIcon />, href: `/${locale}/docs` },
-    { key: 'whiteboards', label: t('whiteboards'), icon: <GestureIcon />, href: `/${locale}` },
+    { key: 'whiteboards', label: t('whiteboards'), icon: <GestureIcon />, href: `/${locale}/whiteboards` },
     { key: 'goals', label: t('goals'), icon: <FlagIcon />, href: `/${locale}` },
     { key: 'reports', label: t('reports'), icon: <BarChartIcon />, href: `/${locale}` },
     {
@@ -91,7 +91,9 @@ export function AppSidebar({ open, onClose, mobileOpen }: AppSidebarProps) {
                 ? pathname?.includes('/projects')
                 : item.key === 'docs'
                   ? pathname?.includes('/docs')
-                  : item.key === 'dashboard' && pathname === `/${locale}`;
+                  : item.key === 'whiteboards'
+                    ? pathname?.includes('/whiteboards')
+                    : item.key === 'dashboard' && pathname === `/${locale}`;
 
           return (
             <ListItem key={item.key} disablePadding>

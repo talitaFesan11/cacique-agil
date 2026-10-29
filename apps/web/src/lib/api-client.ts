@@ -24,6 +24,13 @@ import {
   DocumentDto,
   DocumentTreeNodeDto,
   DocumentVersionDto,
+  CanvasElement,
+  ConvertSelectionToTasksRequest,
+  ConvertStickyToTaskRequest,
+  CreateWhiteboardRequest,
+  PredefinedWhiteboardTemplateDto,
+  UpdateWhiteboardRequest,
+  WhiteboardDto,
   ForgotPasswordRequest,
   GanttProjectDataDto,
   LabelDto,
@@ -818,5 +825,89 @@ export const documentsApi = {
         method: 'DELETE',
       },
     );
+  },
+};
+
+export const whiteboardsApi = {
+  async list(
+    workspaceId: string,
+    filters?: { projectId?: string; search?: string; isTemplate?: boolean },
+  ) {
+    const params = new URLSearchParams();
+    if (filters?.projectId) params.set('projectId', filters.projectId);
+    if (filters?.search) params.set('search', filters.search);
+    if (filters?.isTemplate !== undefined) params.set('isTemplate', String(filters.isTemplate));
+
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const res = await apiRequest<{ data: WhiteboardDto[] }>(
+      `/workspaces/${encodeURIComponent(workspaceId)}/whiteboards${qs}`,
+    );
+    return res.data;
+  },
+
+  async getById(id: string) {
+    const res = await apiRequest<{ data: WhiteboardDto }>(`/whiteboards/${encodeURIComponent(id)}`);
+    return res.data;
+  },
+
+  async create(input: CreateWhiteboardRequest) {
+    const res = await apiRequest<{ data: WhiteboardDto }>('/whiteboards', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return res.data;
+  },
+
+  async update(id: string, input: UpdateWhiteboardRequest) {
+    const res = await apiRequest<{ data: WhiteboardDto }>(`/whiteboards/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
+    return res.data;
+  },
+
+  async delete(id: string) {
+    return apiRequest<void>(`/whiteboards/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getTemplates() {
+    const res = await apiRequest<{ data: PredefinedWhiteboardTemplateDto[] }>('/whiteboards/templates');
+    return res.data;
+  },
+
+  async convertSticky(id: string, input: ConvertStickyToTaskRequest) {
+    const res = await apiRequest<{ data: { task: TaskDto; element: CanvasElement } }>(
+      `/whiteboards/${encodeURIComponent(id)}/convert-sticky`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
+    return res.data;
+  },
+
+  async convertSelection(id: string, input: ConvertSelectionToTasksRequest) {
+    const res = await apiRequest<{ data: { tasks: TaskDto[]; elements: CanvasElement[] } }>(
+      `/whiteboards/${encodeURIComponent(id)}/convert-selection`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
+    return res.data;
+  },
+
+  async export(id: string, format: 'svg' | 'json' = 'svg') {
+    const response = await fetch(`${API_BASE_URL}/whiteboards/${encodeURIComponent(id)}/export?format=${format}`, {
+      headers: {
+        Authorization: `Bearer ${useAuthStore.getState().accessToken}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Falha ao exportar quadro');
+    }
+    return response.text();
   },
 };

@@ -47,12 +47,22 @@ Este documento registra a evolução incremental do projeto **Cacique Agil**, co
     - [`phase5-doc-versions.png`](./phases/fase-05/screenshots/phase5-doc-versions.png) (Histórico de versões imutáveis e restauração 1-clique com backup)
     - [`phase5-doc-comments.png`](./phases/fase-05/screenshots/phase5-doc-comments.png) (Comentários inline com texto citado e badge de resolvido)
     - [`phase5-project-docs.png`](./phases/fase-05/screenshots/phase5-project-docs.png) (Aba Docs na visualização do projeto com documentos vinculados)
+- **Fase 06 — Quadros Brancos (Whiteboards), Canvas Infinito e Tarefas Vivas**:
+  - [Implementation Plan (`docs/phases/fase-06/implementation_plan.md`)](./phases/fase-06/implementation_plan.md)
+  - [Walkthrough & Validação (`docs/phases/fase-06/walkthrough.md`)](./phases/fase-06/walkthrough.md)
+  - Screenshots de Validação E2E (`docs/phases/fase-06/screenshots/`):
+    - [`phase6-whiteboards-gallery.png`](./phases/fase-06/screenshots/phase6-whiteboards-gallery.png) (Galeria de quadros brancos do workspace com filtros e templates)
+    - [`phase6-whiteboard-canvas.png`](./phases/fase-06/screenshots/phase6-whiteboard-canvas.png) (Canvas infinito com Pan/Zoom, notas adesivas coloridas, formas e conectores)
+    - [`phase6-whiteboard-task-card.png`](./phases/fase-06/screenshots/phase6-whiteboard-task-card.png) (Card vivo de tarefa FLX-1 integrado e sincronizado)
+    - [`phase6-whiteboard-templates.png`](./phases/fase-06/screenshots/phase6-whiteboard-templates.png) (Modal de modelos pré-estruturados: Brainstorming, Mapa Mental, Fluxograma, Retrospectiva)
+    - [`phase6-project-whiteboards-tab.png`](./phases/fase-06/screenshots/phase6-project-whiteboards-tab.png) (Aba Quadros Brancos na visualização do projeto)
 - **Architecture Decision Records (`docs/decisions/`)**:
   - [ADR 001 — Tokens de Autenticação e Hashing de Senhas](./decisions/001-auth-tokens-and-password-hashing.md)
   - [ADR 002 — Hierarquia de Subtarefas, Ordenação e Visões Salvas (Fase 2)](./decisions/002-phase2-tasks-hierarchy-and-saved-views.md)
   - [ADR 003 — Posicionamento Fracionário, Alertas WIP e Sincronização em Tempo Real (Fase 3)](./decisions/003-phase3-kanban-and-realtime.md)
   - [ADR 004 — Gráfico Gantt Nativo SVG/CSS, CPM, Detecção de Ciclos em DAG e Visão de Calendário (Fase 4)](./decisions/004-phase4-gantt-cpm-and-calendar.md)
   - [ADR 005 — Editor TipTap, Sincronização CRDT Yjs sobre Socket.IO e Hierarquia Wiki (Fase 5)](./decisions/005-phase5-tiptap-yjs-and-documents-hierarchy.md)
+  - [ADR 006 — Arquitetura de Canvas Infinito SVG/HTML5 Nativo e Sincronização Yjs para Whiteboards (Fase 6)](./decisions/006-phase6-whiteboards-canvas-and-realtime-yjs.md)
 
 ---
 
@@ -233,12 +243,35 @@ Este documento registra a evolução incremental do projeto **Cacique Agil**, co
    - Frontend: `DocTreeSidebar.test.tsx` (6 testes) e `DocTemplatesDialog.test.tsx` (3 testes).
    - E2E Playwright: `phase5-documents.spec.ts` (Fluxo completo: Wiki tree -> TipTap -> Bloco de Tarefa -> Templates -> Versões -> Comentários -> Aba Docs no Projeto) passando com 6 screenshots gerados.
 
+### Fase 06 — Quadros Brancos (Whiteboards), Canvas Infinito e Tarefas Vivas (Concluída)
+1. **Schemas Compartilhados (`packages/shared`)**:
+   - `schemas/whiteboard.ts`: Schemas Zod e DTOs para `CanvasElement`, `WhiteboardDto`, `WhiteboardSummaryDto`, conversão individual de post-it para tarefa (`convertStickyToTask`), conversão em lote (`convertSelectionToTasks`), templates pré-definidos e exportação (SVG, PNG, JSON).
+   - `schemas/entity-link.ts`: Vínculos polimórficos bidirecionais entre entidades (`fromType`, `fromId`, `toType`, `toId`).
+2. **Banco de Dados & Prisma**:
+   - Model `Whiteboard` estendido com `description`, `elementsJson` (JSONB com elementos e posições), `isTemplate`, `templateCategory`, `createdById`, `deletedAt`.
+   - Migration `20261028230000_phase6_whiteboards` gerada e aplicada.
+   - Seed `prisma/seed.ts` atualizado com 3 quadros: 'Brainstorming — Lançamento v1' (com card de tarefa `FLX-1` vinculado via `EntityLink`), 'Fluxograma de Arquitetura & Dados' e 'Retrospectiva da Sprint 1'.
+3. **Backend (`apps/api`)**:
+   - Módulo `src/modules/whiteboards/`: CRUD completo com isolamento multi-tenant, conversão de notas em tarefas com criação de `EntityLink`, biblioteca de 4 templates (Brainstorming, Mindmap, Flowchart, Retrospectiva) e exportação vetorial nativa em SVG e JSON.
+   - Sincronização em tempo real CRDT Yjs sobre Socket.IO (`whiteboard-yjs.service.ts` e `socket.rooms.ts`) com salas `whiteboard:${id}`, deltas binários, awareness de presença e persistência debounced no PostgreSQL (2s).
+   - Documentação OpenAPI completa em `openapi.ts`.
+4. **Frontend (`apps/web`)**:
+   - Canvas infinito nativo SVG/HTML5 com pan/zoom fluido (10% a 300%), grade milimétrica suave e barra flutuante de ferramentas (`WhiteboardCanvas.tsx`, `WhiteboardToolbar.tsx`).
+   - Elementos do canvas: `WhiteboardStickyNote` (post-its coloridos editáveis com conversão 1-clique em tarefa), `WhiteboardShape` (retângulos, círculos, losangos de decisão), `WhiteboardConnector` (setas ortogonais direcionais), `WhiteboardDrawing` (desenho livre) e `WhiteboardTaskCard` (card vivo de tarefa `FLX-1` com status, prioridade e clique duplo para abrir o `TaskDetailDrawer`).
+   - Gaveta lateral de inserção de tarefas existentes do projeto (`WhiteboardTaskDrawer`).
+   - Modal de modelos de quadro pré-estruturados (`WhiteboardTemplatesModal`).
+   - Menu de exportação vetorial SVG, imagem PNG e JSON (`WhiteboardExportMenu`).
+   - Barra de presença com cursores remotos e avatares (`WhiteboardPresenceBar`).
+   - Galeria de quadros do workspace (`/whiteboards`) e aba "Quadros" integrada ao projeto (`/projects/:id?view=whiteboards`).
+5. **Testes Automatizados & E2E**:
+   - Backend: `apps/api/tests/whiteboards.test.ts` (4 testes de templates, CRUD, exportação SVG, conversão e isolamento).
+   - Frontend: `WhiteboardTemplatesModal.test.tsx`, `WhiteboardToolbar.test.tsx`, `WhiteboardStickyNote.test.tsx`, `WhiteboardTaskCard.test.tsx` (12 testes novos).
+   - E2E Playwright: `phase6-whiteboards.spec.ts` (Fluxo completo da galeria ao canvas infinito, post-its, card de tarefa viva `FLX-1`, templates e aba do projeto) passando com 5 screenshots gerados.
+
 ---
 
 ## 2. O que ficou pendente (Próximas Fases do Roadmap)
 
-- **Fase 06 — Quadros Brancos (Canvas):**
-  - Canvas HTML5/SVG com pan/zoom, formas, post-its, conectores, texto livre e conversão de post-it em tarefa.
 - **Fase 07 — Metas (OKRs), Relatórios e Controle de Tempo:**
   - Objetivos (`Goal`) e resultados-chave (`KeyResult`) vinculados a tarefas, dashboards com `@mui/x-charts`, registro de horas (`TimeEntry`) com cronômetro e exportação CSV.
 - **Fase 08 — Polimento, Notificações, Busca Global (`Ctrl+K`), Acessibilidade e CI:**
@@ -257,6 +290,7 @@ Este documento registra a evolução incremental do projeto **Cacique Agil**, co
 6. **Gráfico Gantt Nativo sem Bibliotecas Pagas (`ADR 004`)**: Arquitetura em SVG + CSS com conectores de arestas ortogonais Bézier e marcadores de seta nativos, sem bibliotecas pagas de terceiros.
 7. **Detecção de Ciclos no DAG com HTTP 422 (`ADR 004`)**: Validação DFS de arestas no backend que bloqueia qualquer ciclo em grafo direcionado e retorna a rota cíclica detalhada para a UX.
 8. **Motor de Reagendamento em Cascata e CPM Determinístico (`ADR 004`)**: Implementação em `@fluxo/shared` com ordenação topológica e passes direto/reverso para recalcular datas e destacar o caminho crítico.
+9. **Canvas Infinito SVG/HTML5 Nativo e Sincronização CRDT Yjs (`ADR 006`)**: Arquitetura nativa sem dependência de bibliotecas proprietárias/comerciais (evitando custos de licença e conflitos de peer-dependency com React 19). Permite integração direta com componentes React (MUI, chips de status, drawer de tarefas) e sincronização multi-usuário com Yjs sobre Socket.IO e persistência no PostgreSQL.
 
 9. **Sincronização Yjs sobre Socket.IO com JWT (`ADR 005`)**: Aproveitamento da infraestrutura Socket.IO já existente para transmitir deltas binários Yjs e Awareness sem dependência de servidores proprietários adicionais.
 10. **Prevenção de Ciclos em Árvore Wiki (`ADR 005`)**: Verificação hierárquica no backend para impedir que uma página seja movida para si mesma ou para qualquer um de seus descendentes.

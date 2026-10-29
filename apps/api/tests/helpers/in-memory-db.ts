@@ -211,6 +211,10 @@ export function createInMemoryPrisma() {
   const documentVersions = new Map<string, any>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const documentFavorites = new Map<string, any>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const whiteboards = new Map<string, any>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const entityLinks = new Map<string, any>();
 
   const cuid = () => `c${crypto.randomBytes(12).toString('hex')}`;
 
@@ -323,6 +327,8 @@ export function createInMemoryPrisma() {
       documents.clear();
       documentVersions.clear();
       documentFavorites.clear();
+      whiteboards.clear();
+      entityLinks.clear();
     },
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- callback ou array de promessas de transação em memória compatível com Prisma
@@ -1962,6 +1968,135 @@ export function createInMemoryPrisma() {
           documentFavorites.delete(key);
         } else {
           documentFavorites.clear();
+        }
+        return { count: 0 };
+      },
+    },
+    whiteboard: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findFirst: async ({ where }: any = {}) => {
+        if (where?.id) {
+          const w = whiteboards.get(where.id);
+          if (w && (!where.deletedAt || !w.deletedAt)) {
+            const author = users.get(w.createdById);
+            const proj = w.projectId ? projects.get(w.projectId) : null;
+            return {
+              ...w,
+              createdBy: author ? { id: author.id, name: author.name, email: author.email, avatarUrl: author.avatarUrl } : null,
+              project: proj ? { id: proj.id, name: proj.name, key: proj.key } : null,
+            };
+          }
+          return null;
+        }
+        return null;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findUnique: async ({ where }: any) => {
+        const w = whiteboards.get(where.id);
+        return w || null;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findMany: async ({ where }: any = {}) => {
+        let results = Array.from(whiteboards.values());
+        if (where?.workspaceId) results = results.filter((w) => w.workspaceId === where.workspaceId);
+        if (where?.projectId !== undefined) results = results.filter((w) => w.projectId === where.projectId);
+        if (where?.deletedAt === null) results = results.filter((w) => !w.deletedAt);
+        if (where?.isTemplate !== undefined) results = results.filter((w) => w.isTemplate === where.isTemplate);
+        if (where?.title?.contains) {
+          results = results.filter((w) => w.title.toLowerCase().includes(where.title.contains.toLowerCase()));
+        }
+        return results.map((w) => {
+          const author = users.get(w.createdById);
+          const proj = w.projectId ? projects.get(w.projectId) : null;
+          return {
+            ...w,
+            createdBy: author ? { id: author.id, name: author.name, email: author.email, avatarUrl: author.avatarUrl } : null,
+            project: proj ? { id: proj.id, name: proj.name, key: proj.key } : null,
+          };
+        });
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      create: async ({ data }: any) => {
+        const id = cuid();
+        const record = {
+          id,
+          workspaceId: data.workspace?.connect?.id || data.workspaceId,
+          projectId: data.project?.connect?.id || data.projectId || null,
+          title: data.title,
+          description: data.description || null,
+          isTemplate: Boolean(data.isTemplate),
+          templateCategory: data.templateCategory || null,
+          elementsJson: data.elementsJson || [],
+          thumbnailUrl: data.thumbnailUrl || null,
+          createdById: data.createdBy?.connect?.id || data.createdById || null,
+          yjsState: null,
+          deletedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        whiteboards.set(id, record);
+        const author = users.get(record.createdById);
+        const proj = record.projectId ? projects.get(record.projectId) : null;
+        return {
+          ...record,
+          createdBy: author ? { id: author.id, name: author.name, email: author.email, avatarUrl: author.avatarUrl } : null,
+          project: proj ? { id: proj.id, name: proj.name, key: proj.key } : null,
+        };
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      update: async ({ where, data }: any) => {
+        const existing = whiteboards.get(where.id);
+        if (!existing) throw new Error('Whiteboard not found');
+        const updated = {
+          ...existing,
+          ...data,
+          projectId: data.project?.connect?.id !== undefined ? data.project.connect.id : data.project?.disconnect ? null : existing.projectId,
+          updatedAt: new Date(),
+        };
+        whiteboards.set(where.id, updated);
+        const author = users.get(updated.createdById);
+        const proj = updated.projectId ? projects.get(updated.projectId) : null;
+        return {
+          ...updated,
+          createdBy: author ? { id: author.id, name: author.name, email: author.email, avatarUrl: author.avatarUrl } : null,
+          project: proj ? { id: proj.id, name: proj.name, key: proj.key } : null,
+        };
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      deleteMany: async () => {
+        whiteboards.clear();
+        return { count: 0 };
+      },
+    },
+    entityLink: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findMany: async ({ where }: any = {}) => {
+        let results = Array.from(entityLinks.values());
+        if (where?.fromType) results = results.filter((l) => l.fromType === where.fromType);
+        if (where?.fromId) results = results.filter((l) => l.fromId === where.fromId);
+        if (where?.toType) results = results.filter((l) => l.toType === where.toType);
+        if (where?.toId) results = results.filter((l) => l.toId === where.toId);
+        if (where?.workspaceId) results = results.filter((l) => l.workspaceId === where.workspaceId);
+        return results;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      create: async ({ data }: any) => {
+        const id = cuid();
+        const record = { id, ...data, createdAt: new Date() };
+        entityLinks.set(id, record);
+        return record;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      deleteMany: async ({ where }: any = {}) => {
+        for (const [id, link] of entityLinks.entries()) {
+          if (
+            (!where?.fromType || link.fromType === where.fromType) &&
+            (!where?.fromId || link.fromId === where.fromId) &&
+            (!where?.toType || link.toType === where.toType) &&
+            (!where?.toId || link.toId === where.toId)
+          ) {
+            entityLinks.delete(id);
+          }
         }
         return { count: 0 };
       },

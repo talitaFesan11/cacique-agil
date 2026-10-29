@@ -62,6 +62,12 @@ import {
   CreateDocumentVersionRequestSchema,
   DocumentCommentSchema,
   CreateDocumentCommentRequestSchema,
+  WhiteboardSchema,
+  CreateWhiteboardRequestSchema,
+  UpdateWhiteboardRequestSchema,
+  ConvertStickyToTaskRequestSchema,
+  ConvertSelectionToTasksRequestSchema,
+  PredefinedWhiteboardTemplateSchema,
 } from '@fluxo/shared';
 
 extendZodWithOpenApi(z);
@@ -1260,6 +1266,167 @@ registry.registerPath({
     201: {
       description: 'Comentário criado',
       content: { 'application/json': { schema: z.object({ data: DocumentCommentSchema }) } },
+    },
+  },
+});
+
+// -------------------------------------------------------------
+// Fase 6: Quadros Brancos (Whiteboards)
+// -------------------------------------------------------------
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/whiteboards/templates',
+  tags: ['Whiteboards'],
+  summary: 'Listar modelos pré-definidos de quadros brancos',
+  security: [{ [bearerAuth.name]: [] }],
+  responses: {
+    200: {
+      description: 'Modelos de quadros brancos',
+      content: { 'application/json': { schema: z.object({ data: z.array(PredefinedWhiteboardTemplateSchema) }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/workspaces/{workspaceId}/whiteboards',
+  tags: ['Whiteboards'],
+  summary: 'Listar quadros brancos do workspace',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ workspaceId: z.string() }),
+    query: z.object({
+      projectId: z.string().optional(),
+      search: z.string().optional(),
+      isTemplate: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Lista de quadros brancos',
+      content: { 'application/json': { schema: z.object({ data: z.array(WhiteboardSchema) }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/whiteboards',
+  tags: ['Whiteboards'],
+  summary: 'Criar novo quadro branco',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    body: { content: { 'application/json': { schema: CreateWhiteboardRequestSchema } } },
+  },
+  responses: {
+    201: {
+      description: 'Quadro branco criado com sucesso',
+      content: { 'application/json': { schema: z.object({ data: WhiteboardSchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/whiteboards/{id}',
+  tags: ['Whiteboards'],
+  summary: 'Obter detalhes e elementos do quadro branco',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Detalhes do quadro branco',
+      content: { 'application/json': { schema: z.object({ data: WhiteboardSchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/api/v1/whiteboards/{id}',
+  tags: ['Whiteboards'],
+  summary: 'Atualizar metadados ou snapshot do quadro branco',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: UpdateWhiteboardRequestSchema } } },
+  },
+  responses: {
+    200: {
+      description: 'Quadro branco atualizado',
+      content: { 'application/json': { schema: z.object({ data: WhiteboardSchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/v1/whiteboards/{id}',
+  tags: ['Whiteboards'],
+  summary: 'Excluir quadro branco (soft delete)',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Quadro branco excluído',
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/whiteboards/{id}/convert-sticky',
+  tags: ['Whiteboards'],
+  summary: 'Converter nota adesiva em tarefa real no projeto e criar vínculo EntityLink',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: ConvertStickyToTaskRequestSchema } } },
+  },
+  responses: {
+    201: {
+      description: 'Nota convertida em tarefa',
+      content: { 'application/json': { schema: z.object({ data: z.any() }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/whiteboards/{id}/convert-selection',
+  tags: ['Whiteboards'],
+  summary: 'Converter seleção múltipla de notas em tarefas do projeto',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: ConvertSelectionToTasksRequestSchema } } },
+  },
+  responses: {
+    201: {
+      description: 'Seleção convertida em tarefas',
+      content: { 'application/json': { schema: z.object({ data: z.any() }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/whiteboards/{id}/export',
+  tags: ['Whiteboards'],
+  summary: 'Exportar quadro branco em SVG ou JSON',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    query: z.object({ format: z.enum(['svg', 'json']).optional() }),
+  },
+  responses: {
+    200: {
+      description: 'Arquivo exportado',
     },
   },
 });

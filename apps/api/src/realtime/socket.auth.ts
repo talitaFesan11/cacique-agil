@@ -9,6 +9,7 @@ export interface AuthenticatedSocket extends Socket {
     user?: AuthenticatedUser;
     projectRooms?: Set<string>;
     docRooms?: Set<string>;
+    whiteboardRooms?: Set<string>;
   };
 }
 
@@ -51,6 +52,7 @@ export const socketAuthMiddleware = (
     };
     (socket as AuthenticatedSocket).data.projectRooms = new Set<string>();
     (socket as AuthenticatedSocket).data.docRooms = new Set<string>();
+    (socket as AuthenticatedSocket).data.whiteboardRooms = new Set<string>();
 
     return next();
   } catch (error) {
