@@ -205,6 +205,12 @@ export function createInMemoryPrisma() {
   const projectBaselines = new Map<string, any>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const taskBaselineItems = new Map<string, any>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const documents = new Map<string, any>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const documentVersions = new Map<string, any>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const documentFavorites = new Map<string, any>();
 
   const cuid = () => `c${crypto.randomBytes(12).toString('hex')}`;
 
@@ -314,6 +320,9 @@ export function createInMemoryPrisma() {
       taskDependencies.clear();
       projectBaselines.clear();
       taskBaselineItems.clear();
+      documents.clear();
+      documentVersions.clear();
+      documentFavorites.clear();
     },
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- callback ou array de promessas de transação em memória compatível com Prisma
@@ -1747,6 +1756,213 @@ export function createInMemoryPrisma() {
       },
       deleteMany: async () => {
         taskBaselineItems.clear();
+        return { count: 0 };
+      },
+    },
+
+    document: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findFirst: async ({ where }: any = {}) => {
+        const list = Array.from(documents.values());
+        const match = list.find((d) => {
+          if (where.id && d.id !== where.id) return false;
+          if (where.deletedAt === null && d.deletedAt !== null) return false;
+          if (where.workspaceId && d.workspaceId !== where.workspaceId) return false;
+          return true;
+        });
+        if (!match) return null;
+        const author = match.createdById ? users.get(match.createdById) : null;
+        const children = list.filter((c) => c.parentId === match.id && c.deletedAt === null);
+        const docComments = Array.from(comments.values()).filter((c) => c.docId === match.id);
+        return {
+          ...match,
+          createdBy: author ? { id: author.id, name: author.name, email: author.email, avatarUrl: author.avatarUrl } : null,
+          _count: { children: children.length, comments: docComments.length },
+        };
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findUnique: async ({ where }: any) => {
+        const d = documents.get(where.id);
+        if (!d) return null;
+        return { ...d };
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findMany: async ({ where, orderBy }: any = {}) => {
+        let results = Array.from(documents.values());
+        if (where?.workspaceId) {
+          results = results.filter((d) => d.workspaceId === where.workspaceId);
+        }
+        if (where?.projectId !== undefined) {
+          results = results.filter((d) => d.projectId === where.projectId);
+        }
+        if (where?.isTemplate !== undefined) {
+          results = results.filter((d) => d.isTemplate === where.isTemplate);
+        }
+        if (where?.deletedAt === null) {
+          results = results.filter((d) => d.deletedAt === null);
+        }
+        if (where?.title?.contains) {
+          const search = String(where.title.contains).toLowerCase();
+          results = results.filter((d) => d.title.toLowerCase().includes(search));
+        }
+        return results.map((match) => {
+          const author = match.createdById ? users.get(match.createdById) : null;
+          const children = results.filter((c) => c.parentId === match.id && c.deletedAt === null);
+          const docComments = Array.from(comments.values()).filter((c) => c.docId === match.id);
+          return {
+            ...match,
+            createdBy: author ? { id: author.id, name: author.name, email: author.email, avatarUrl: author.avatarUrl } : null,
+            _count: { children: children.length, comments: docComments.length },
+          };
+        });
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      create: async ({ data }: any) => {
+        const id = cuid();
+        const record = {
+          id,
+          workspaceId: data.workspace?.connect?.id || data.workspaceId,
+          projectId: data.project?.connect?.id || data.projectId || null,
+          parentId: data.parent?.connect?.id || data.parentId || null,
+          title: data.title || 'Sem título',
+          icon: data.icon || '📄',
+          contentJson: data.contentJson || null,
+          yjsState: data.yjsState || null,
+          isTemplate: data.isTemplate || false,
+          templateCategory: data.templateCategory || null,
+          createdById: data.createdBy?.connect?.id || data.createdById || null,
+          deletedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        documents.set(id, record);
+        const author = record.createdById ? users.get(record.createdById) : null;
+        return {
+          ...record,
+          createdBy: author ? { id: author.id, name: author.name, email: author.email, avatarUrl: author.avatarUrl } : null,
+          _count: { children: 0, comments: 0 },
+        };
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      update: async ({ where, data }: any) => {
+        const existing = documents.get(where.id);
+        if (!existing) throw new Error('Document not found');
+        const updated = {
+          ...existing,
+          title: data.title !== undefined ? data.title : existing.title,
+          icon: data.icon !== undefined ? data.icon : existing.icon,
+          contentJson: data.contentJson !== undefined ? data.contentJson : existing.contentJson,
+          yjsState: data.yjsState !== undefined ? data.yjsState : existing.yjsState,
+          isTemplate: data.isTemplate !== undefined ? data.isTemplate : existing.isTemplate,
+          templateCategory: data.templateCategory !== undefined ? data.templateCategory : existing.templateCategory,
+          parentId: data.parent?.connect?.id !== undefined ? data.parent.connect.id : data.parent?.disconnect ? null : existing.parentId,
+          projectId: data.project?.connect?.id !== undefined ? data.project.connect.id : data.project?.disconnect ? null : existing.projectId,
+          deletedAt: data.deletedAt !== undefined ? data.deletedAt : existing.deletedAt,
+          updatedAt: new Date(),
+        };
+        documents.set(where.id, updated);
+        const author = updated.createdById ? users.get(updated.createdById) : null;
+        return {
+          ...updated,
+          createdBy: author ? { id: author.id, name: author.name, email: author.email, avatarUrl: author.avatarUrl } : null,
+          _count: { children: 0, comments: 0 },
+        };
+      },
+      deleteMany: async () => {
+        documents.clear();
+        return { count: 0 };
+      },
+    },
+
+    documentVersion: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findFirst: async ({ where, orderBy }: any = {}) => {
+        let results = Array.from(documentVersions.values());
+        if (where?.docId) results = results.filter((v) => v.docId === where.docId);
+        if (orderBy?.versionNumber === 'desc') {
+          results.sort((a, b) => b.versionNumber - a.versionNumber);
+        }
+        return results[0] || null;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findUnique: async ({ where }: any) => {
+        return documentVersions.get(where.id) || null;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findMany: async ({ where, orderBy }: any = {}) => {
+        let results = Array.from(documentVersions.values());
+        if (where?.docId) results = results.filter((v) => v.docId === where.docId);
+        if (orderBy?.versionNumber === 'desc') {
+          results.sort((a, b) => b.versionNumber - a.versionNumber);
+        }
+        return results.map((v) => {
+          const author = v.createdById ? users.get(v.createdById) : null;
+          return {
+            ...v,
+            createdBy: author ? { id: author.id, name: author.name, email: author.email, avatarUrl: author.avatarUrl } : null,
+          };
+        });
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      create: async ({ data }: any) => {
+        const id = cuid();
+        const record = {
+          id,
+          docId: data.docId,
+          versionNumber: data.versionNumber,
+          name: data.name || null,
+          contentJson: data.contentJson || null,
+          yjsState: data.yjsState || null,
+          createdById: data.createdById || null,
+          createdAt: new Date(),
+        };
+        documentVersions.set(id, record);
+        const author = record.createdById ? users.get(record.createdById) : null;
+        return {
+          ...record,
+          createdBy: author ? { id: author.id, name: author.name, email: author.email, avatarUrl: author.avatarUrl } : null,
+        };
+      },
+      deleteMany: async () => {
+        documentVersions.clear();
+        return { count: 0 };
+      },
+    },
+
+    documentFavorite: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findUnique: async ({ where }: any) => {
+        if (where.userId_docId) {
+          const { userId, docId } = where.userId_docId;
+          const key = `${userId}:${docId}`;
+          return documentFavorites.get(key) || null;
+        }
+        return null;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      findMany: async ({ where }: any = {}) => {
+        let results = Array.from(documentFavorites.values());
+        if (where?.userId) {
+          results = results.filter((f) => f.userId === where.userId);
+        }
+        return results;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      upsert: async ({ where, create }: any) => {
+        const { userId, docId } = where.userId_docId;
+        const key = `${userId}:${docId}`;
+        const record = { id: cuid(), userId, docId, createdAt: new Date() };
+        documentFavorites.set(key, record);
+        return record;
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      deleteMany: async ({ where }: any = {}) => {
+        if (where?.userId && where?.docId) {
+          const key = `${where.userId}:${where.docId}`;
+          documentFavorites.delete(key);
+        } else {
+          documentFavorites.clear();
+        }
         return { count: 0 };
       },
     },

@@ -42,5 +42,9 @@ playwright-report/
 blob-report/
 playwright/.cache/
 
+# Temporary
+*-old/
+.*-old/
+
 # Docker
 docker-data/

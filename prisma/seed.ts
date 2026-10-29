@@ -15,6 +15,8 @@ async function main() {
   // 1. Limpeza em ordem reversa para garantir idempotência do seed em dev
   await prisma.activityLog.deleteMany();
   await prisma.notification.deleteMany();
+  await prisma.documentFavorite.deleteMany();
+  await prisma.documentVersion.deleteMany();
   await prisma.taskBaselineItem.deleteMany();
   await prisma.projectBaseline.deleteMany();
   await prisma.taskDependency.deleteMany();
@@ -626,6 +628,410 @@ async function main() {
 
   console.log(
     `✓ Tarefas criadas: ${defaultProject.key}-${task1.number} até ${defaultProject.key}-${task8.number} com etiquetas, checklist, comentário, anexo e visão salva`,
+  );
+
+  // 10. Documentos Colaborativos, Versões, Favoritos e Templates (Fase 5)
+  const docPrd = await prisma.document.create({
+    data: {
+      workspaceId: defaultWorkspace.id,
+      projectId: defaultProject.id,
+      title: 'Especificação e Arquitetura do Produto (PRD)',
+      icon: '🚀',
+      createdById: adminUser.id,
+      contentJson: {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: 'Especificação do Cacique Agil' }],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Este documento centraliza a arquitetura do produto e os objetivos da versão v1.0.',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'A primeira entrega estratégica está associada à tarefa principal: ',
+              },
+              {
+                type: 'text',
+                marks: [{ type: 'bold' }],
+                text: `#${defaultProject.key}-${task1.number} — ${task1.title}`,
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: { level: 2 },
+            content: [{ type: 'text', text: 'Módulos Concluídos' }],
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: 'Autenticação e Workspaces (Fase 1)' }],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: 'Projetos e Visão Lista de Tarefas (Fase 2)' }],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: 'Quadro Kanban e Tempo Real (Fase 3)' }],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: 'Gantt, CPM, Dependências e Calendário (Fase 4)' }],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        type: 'text',
+                        marks: [{ type: 'bold' }],
+                        text: 'Documentos Colaborativos, TipTap & Yjs (Fase 5)',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+
+  const docDesign = await prisma.document.create({
+    data: {
+      workspaceId: defaultWorkspace.id,
+      projectId: defaultProject.id,
+      parentId: docPrd.id,
+      title: 'Diretrizes de Design e UX',
+      icon: '🎨',
+      createdById: memberUser.id,
+      contentJson: {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: 'Diretrizes de Design System' }],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Padrões de acessibilidade WCAG 2.1 AA, modo claro/escuro com paleta de tokens MUI centralizados.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+
+  const docMeeting = await prisma.document.create({
+    data: {
+      workspaceId: defaultWorkspace.id,
+      projectId: defaultProject.id,
+      title: 'Ata da Reunião de Kickoff da Sprint',
+      icon: '📝',
+      createdById: adminUser.id,
+      contentJson: {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: 'Ata de Reunião — Kickoff da Sprint' }],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Participantes: Ana Silva (Owner), Carlos Souza (Member).',
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: { level: 2 },
+            content: [{ type: 'text', text: 'Decisões Aprovadas' }],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Foco total na entrega da wiki colaborativa com sincronização CRDT Yjs e edição simultânea.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+
+  // Favorito do admin no PRD
+  await prisma.documentFavorite.create({
+    data: {
+      userId: adminUser.id,
+      docId: docPrd.id,
+    },
+  });
+
+  // Versão 1 arquivada do PRD
+  await prisma.documentVersion.create({
+    data: {
+      docId: docPrd.id,
+      versionNumber: 1,
+      name: 'Versão Inicial Aprovada',
+      createdById: adminUser.id,
+      contentJson: docPrd.contentJson,
+    },
+  });
+
+  // Comentário inline no PRD
+  await prisma.comment.create({
+    data: {
+      docId: docPrd.id,
+      authorId: memberUser.id,
+      selectedText: 'arquitetura do produto',
+      body: {
+        text: 'Excelente contextualização técnica, alinhado com o roadmap!',
+      },
+    },
+  });
+
+  // Modelos pré-definidos (Templates)
+  await prisma.document.createMany({
+    data: [
+      {
+        workspaceId: defaultWorkspace.id,
+        title: 'Modelo: Ata de Reunião',
+        icon: '📋',
+        isTemplate: true,
+        templateCategory: 'MEETING',
+        contentJson: {
+          type: 'doc',
+          content: [
+            {
+              type: 'heading',
+              attrs: { level: 1 },
+              content: [{ type: 'text', text: 'Ata de Reunião: [Título do Tópico]' }],
+            },
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  type: 'text',
+                  marks: [{ type: 'bold' }],
+                  text: 'Data: ',
+                },
+                { type: 'text', text: '[Inserir Data] | ' },
+                {
+                  type: 'text',
+                  marks: [{ type: 'bold' }],
+                  text: 'Participantes: ',
+                },
+                { type: 'text', text: '[Nomes]' },
+              ],
+            },
+            {
+              type: 'heading',
+              attrs: { level: 2 },
+              content: [{ type: 'text', text: 'Pauta e Discussão' }],
+            },
+            {
+              type: 'bulletList',
+              content: [
+                {
+                  type: 'listItem',
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Item 1' }] }],
+                },
+                {
+                  type: 'listItem',
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Item 2' }] }],
+                },
+              ],
+            },
+            {
+              type: 'heading',
+              attrs: { level: 2 },
+              content: [{ type: 'text', text: 'Decisões Tomadas' }],
+            },
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: '• [Decisão 1 aprovada pelo time]' }],
+            },
+            {
+              type: 'heading',
+              attrs: { level: 2 },
+              content: [{ type: 'text', text: 'Plano de Ação' }],
+            },
+            {
+              type: 'taskList',
+              content: [
+                {
+                  type: 'taskItem',
+                  attrs: { checked: false },
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Ação imediata com responsável' }] }],
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        workspaceId: defaultWorkspace.id,
+        title: 'Modelo: PRD (Product Requirements Document)',
+        icon: '📑',
+        isTemplate: true,
+        templateCategory: 'PRD',
+        contentJson: {
+          type: 'doc',
+          content: [
+            {
+              type: 'heading',
+              attrs: { level: 1 },
+              content: [{ type: 'text', text: 'PRD: [Nome da Funcionalidade]' }],
+            },
+            {
+              type: 'heading',
+              attrs: { level: 2 },
+              content: [{ type: 'text', text: '1. Problema e Oportunidade' }],
+            },
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Qual problema do usuário estamos resolvendo?' }],
+            },
+            {
+              type: 'heading',
+              attrs: { level: 2 },
+              content: [{ type: 'text', text: '2. Objetivos e Métricas de Sucesso' }],
+            },
+            {
+              type: 'bulletList',
+              content: [
+                {
+                  type: 'listItem',
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Meta 1: Reduzir tempo de ciclo em 20%' }] }],
+                },
+              ],
+            },
+            {
+              type: 'heading',
+              attrs: { level: 2 },
+              content: [{ type: 'text', text: '3. Requisitos Funcionais' }],
+            },
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Descreva os fluxos de interação e casos de uso essenciais.' }],
+            },
+          ],
+        },
+      },
+      {
+        workspaceId: defaultWorkspace.id,
+        title: 'Modelo: Retrospectiva de Sprint',
+        icon: '🔄',
+        isTemplate: true,
+        templateCategory: 'RETROSPECTIVE',
+        contentJson: {
+          type: 'doc',
+          content: [
+            {
+              type: 'heading',
+              attrs: { level: 1 },
+              content: [{ type: 'text', text: 'Retrospectiva: Sprint [Número]' }],
+            },
+            {
+              type: 'heading',
+              attrs: { level: 2 },
+              content: [{ type: 'text', text: 'O que correu bem? 🎉' }],
+            },
+            {
+              type: 'bulletList',
+              content: [
+                {
+                  type: 'listItem',
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Excelente colaboração no fechamento das tarefas prioritárias.' }] }],
+                },
+              ],
+            },
+            {
+              type: 'heading',
+              attrs: { level: 2 },
+              content: [{ type: 'text', text: 'O que podemos melhorar? 🤔' }],
+            },
+            {
+              type: 'bulletList',
+              content: [
+                {
+                  type: 'listItem',
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Alinhar critérios de aceite mais cedo na sprint.' }] }],
+                },
+              ],
+            },
+            {
+              type: 'heading',
+              attrs: { level: 2 },
+              content: [{ type: 'text', text: 'Plano de Ação para a Próxima Sprint 🚀' }],
+            },
+            {
+              type: 'taskList',
+              content: [
+                {
+                  type: 'taskItem',
+                  attrs: { checked: false },
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Item de ação acordado' }] }],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ],
+  });
+
+  console.log(
+    `✓ Documentos criados: '${docPrd.title}' (com subpágina '${docDesign.title}'), '${docMeeting.title}', favorito, versão v1, comentário inline e 3 templates de demonstração`,
   );
 
   console.log('Seed concluído com sucesso!');

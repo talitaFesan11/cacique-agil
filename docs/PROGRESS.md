@@ -37,11 +37,22 @@ Este documento registra a evolução incremental do projeto **Cacique Agil**, co
     - [`phase4-calendar.png`](./phases/fase-04/screenshots/phase4-calendar.png)
     - [`phase4-workload.png`](./phases/fase-04/screenshots/phase4-workload.png)
     - [`phase4-dependencies-drawer.png`](./phases/fase-04/screenshots/phase4-dependencies-drawer.png)
+- **Fase 05 — Documentos Colaborativos, TipTap + Yjs e Hierarquia Wiki**:
+  - [Implementation Plan (`docs/phases/fase-05/implementation_plan.md`)](./phases/fase-05/implementation_plan.md)
+  - [Walkthrough & Validação (`docs/phases/fase-05/walkthrough.md`)](./phases/fase-05/walkthrough.md)
+  - Screenshots de Validação E2E (`docs/phases/fase-05/screenshots/`):
+    - [`phase5-docs-tree.png`](./phases/fase-05/screenshots/phase5-docs-tree.png) (Árvore Wiki expansível, subpáginas, favoritos e busca textual)
+    - [`phase5-doc-editor.png`](./phases/fase-05/screenshots/phase5-doc-editor.png) (Editor TipTap com toolbar, títulos e bloco vivo de tarefa FLX-1)
+    - [`phase5-doc-templates.png`](./phases/fase-05/screenshots/phase5-doc-templates.png) (Galeria de modelos com Ata de Reunião, PRD e Retrospectiva)
+    - [`phase5-doc-versions.png`](./phases/fase-05/screenshots/phase5-doc-versions.png) (Histórico de versões imutáveis e restauração 1-clique com backup)
+    - [`phase5-doc-comments.png`](./phases/fase-05/screenshots/phase5-doc-comments.png) (Comentários inline com texto citado e badge de resolvido)
+    - [`phase5-project-docs.png`](./phases/fase-05/screenshots/phase5-project-docs.png) (Aba Docs na visualização do projeto com documentos vinculados)
 - **Architecture Decision Records (`docs/decisions/`)**:
   - [ADR 001 — Tokens de Autenticação e Hashing de Senhas](./decisions/001-auth-tokens-and-password-hashing.md)
   - [ADR 002 — Hierarquia de Subtarefas, Ordenação e Visões Salvas (Fase 2)](./decisions/002-phase2-tasks-hierarchy-and-saved-views.md)
   - [ADR 003 — Posicionamento Fracionário, Alertas WIP e Sincronização em Tempo Real (Fase 3)](./decisions/003-phase3-kanban-and-realtime.md)
   - [ADR 004 — Gráfico Gantt Nativo SVG/CSS, CPM, Detecção de Ciclos em DAG e Visão de Calendário (Fase 4)](./decisions/004-phase4-gantt-cpm-and-calendar.md)
+  - [ADR 005 — Editor TipTap, Sincronização CRDT Yjs sobre Socket.IO e Hierarquia Wiki (Fase 5)](./decisions/005-phase5-tiptap-yjs-and-documents-hierarchy.md)
 
 ---
 
@@ -183,12 +194,49 @@ Este documento registra a evolução incremental do projeto **Cacique Agil**, co
    - Frontend: `TaskGanttView.test.tsx` (5 testes), `TaskCalendarView.test.tsx` (4 testes).
    - E2E Playwright: `phase4-gantt-calendar.spec.ts` (Gantt, CPM, Zoom, Dependências, Linha de Base, Calendário Mês/Semana, Carga de Trabalho e Drawer).
 
+### Fase 05 — Documentos Colaborativos, TipTap + Yjs e Hierarquia Wiki (Concluída)
+1. **Schemas Compartilhados (`packages/shared`)**:
+   - `schemas/document.ts`: Schemas Zod e DTOs para `Document`, `DocumentTreeNode`, `DocumentVersion`, `DocumentComment`, `PredefinedTemplate` e `DocumentExportFormat`.
+2. **Banco de Dados & Prisma**:
+   - Model `Document` estendido com `isTemplate`, `templateCategory`, `createdById`.
+   - Novos models: `DocumentVersion` (snapshots imutáveis e restauráveis) e `DocumentFavorite` (favoritos por usuário).
+   - Model `Comment` com relação direta com `Document` (`docId`), suporte a `selectedText`, `resolvedAt` e `resolvedById`.
+   - Migration `20261028193000_phase5_documents` gerada e aplicada com sucesso.
+   - Seed `prisma/seed.ts` com PRD raiz, subpágina de Design, Ata de Reunião, favorito, snapshot de versão, comentário inline e 3 modelos estruturados.
+3. **Backend (`apps/api`)**:
+   - **Módulo de Documentos (`src/modules/documents/`)**:
+     - Árvore Wiki recursiva com ordenação, prevenção estrita de ciclos e busca.
+     - Alternância de favoritos por usuário (`POST /api/v1/documents/:id/favorite`).
+     - Snapshots de versão manuais e restauração 1-clique com backup de segurança (`POST /api/v1/documents/:id/versions/:versionId/restore`).
+     - Comentários inline em documentos com citação de texto e marcação de resolvido/reaberto.
+     - Exportação nativa em Markdown (`.md`), HTML e JSON.
+   - **Sincronização em Tempo Real CRDT (`src/realtime/`)**:
+     - `yjs.service.ts` gerenciando `Y.Doc` sobre canais Socket.IO com autenticação JWT e persistência debounced no Postgres (2s).
+   - **Documentação OpenAPI**: Todos os endpoints documentados e validados.
+4. **Frontend (`apps/web`)**:
+   - **Editor TipTap Rico e Colaborativo (`apps/web/src/components/docs/`)**:
+     - Barra de ferramentas (`DocToolbar`), menu flutuante (`DocBubbleMenu`), barra de presença e sincronização (`DocCollaborationBar`).
+     - Extensão customizada `CalloutExtension` (info, success, warning, danger).
+     - Extensão customizada `EmbeddedTaskExtension` renderizando chips vivos de tarefas (`FLX-1`) com status interativo.
+     - Provedor Socket.IO `YjsSocketProvider` com awareness de cursores e presença.
+   - **Árvore Hierárquica Wiki (`DocTreeSidebar` & `DocTreeNode`)**:
+     - Subpáginas em múltiplos níveis, favoritos no topo e filtro em tempo real.
+   - **Gavetas & Modais**:
+     - `DocVersionHistoryDrawer`: histórico e restauração.
+     - `DocInlineCommentsPane`: comentários com trecho selecionado.
+     - `DocTemplatesDialog`: galeria de templates prontos (PRD, Ata, Retrospectiva).
+     - `DocExportDialog`: exportação Markdown, JSON e PDF via regras `@media print`.
+   - **Integração no Projeto**:
+     - Aba "Docs" em `projects/[projectId]/page.tsx` permitindo gerenciar documentos associados.
+5. **Testes Automatizados & E2E**:
+   - Backend: `apps/api/tests/documents.test.ts` (4 testes de criação, árvore, favoritos e exportação).
+   - Frontend: `DocTreeSidebar.test.tsx` (6 testes) e `DocTemplatesDialog.test.tsx` (3 testes).
+   - E2E Playwright: `phase5-documents.spec.ts` (Fluxo completo: Wiki tree -> TipTap -> Bloco de Tarefa -> Templates -> Versões -> Comentários -> Aba Docs no Projeto) passando com 6 screenshots gerados.
+
 ---
 
 ## 2. O que ficou pendente (Próximas Fases do Roadmap)
 
-- **Fase 05 — Documentos Colaborativos (Wiki):**
-  - Árvore hierárquica de páginas (`Document`), editor rico Tiptap, histórico de versões (`DocumentVersion`) e vínculo entre trechos e tarefas.
 - **Fase 06 — Quadros Brancos (Canvas):**
   - Canvas HTML5/SVG com pan/zoom, formas, post-its, conectores, texto livre e conversão de post-it em tarefa.
 - **Fase 07 — Metas (OKRs), Relatórios e Controle de Tempo:**
@@ -209,6 +257,10 @@ Este documento registra a evolução incremental do projeto **Cacique Agil**, co
 6. **Gráfico Gantt Nativo sem Bibliotecas Pagas (`ADR 004`)**: Arquitetura em SVG + CSS com conectores de arestas ortogonais Bézier e marcadores de seta nativos, sem bibliotecas pagas de terceiros.
 7. **Detecção de Ciclos no DAG com HTTP 422 (`ADR 004`)**: Validação DFS de arestas no backend que bloqueia qualquer ciclo em grafo direcionado e retorna a rota cíclica detalhada para a UX.
 8. **Motor de Reagendamento em Cascata e CPM Determinístico (`ADR 004`)**: Implementação em `@fluxo/shared` com ordenação topológica e passes direto/reverso para recalcular datas e destacar o caminho crítico.
+
+9. **Sincronização Yjs sobre Socket.IO com JWT (`ADR 005`)**: Aproveitamento da infraestrutura Socket.IO já existente para transmitir deltas binários Yjs e Awareness sem dependência de servidores proprietários adicionais.
+10. **Prevenção de Ciclos em Árvore Wiki (`ADR 005`)**: Verificação hierárquica no backend para impedir que uma página seja movida para si mesma ou para qualquer um de seus descendentes.
+11. **Restauração Segura de Versões com Backup Automático (`ADR 005`)**: Toda restauração salva automaticamente uma versão de segurança do estado atual antes de aplicar o snapshot anterior.
 
 ---
 

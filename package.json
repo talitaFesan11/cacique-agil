@@ -1,7 +1,6 @@
 {
   "name": "cacique-agil",
   "private": true,
-  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "dev": "pnpm --filter \"@fluxo/*\" --parallel dev",
     "dev:api": "pnpm --filter @fluxo/api dev",

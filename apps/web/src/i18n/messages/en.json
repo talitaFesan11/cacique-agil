@@ -345,5 +345,19 @@
     "checkHealth": "Check /health Endpoint",
     "nextPhasesTitle": "Next Phases",
     "nextPhasesDesc": "Phase 3 will implement the interactive Kanban board with dnd-kit, WIP limits, swimlanes, and real-time synchronization via Socket.IO."
+  },
+  "docs": {
+    "title": "Documents & Wiki",
+    "newPage": "New Page",
+    "pages": "Pages",
+    "favorites": "Favorites",
+    "templates": "Templates",
+    "searchPlaceholder": "Search pages...",
+    "versions": "Version History",
+    "comments": "Document Comments",
+    "export": "Export Document",
+    "syncConnected": "Synced",
+    "syncSaving": "Saving...",
+    "syncOffline": "Offline"
   }
 }

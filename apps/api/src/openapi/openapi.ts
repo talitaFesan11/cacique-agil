@@ -54,6 +54,14 @@ import {
   AutoRescheduleResultSchema,
   ProjectBaselineSchema,
   CreateBaselineRequestSchema,
+  DocumentSchema,
+  CreateDocumentRequestSchema,
+  UpdateDocumentRequestSchema,
+  MoveDocumentRequestSchema,
+  DocumentVersionSchema,
+  CreateDocumentVersionRequestSchema,
+  DocumentCommentSchema,
+  CreateDocumentCommentRequestSchema,
 } from '@fluxo/shared';
 
 extendZodWithOpenApi(z);
@@ -1026,6 +1034,232 @@ registry.registerPath({
     201: {
       description: 'Linha de base criada com sucesso',
       content: { 'application/json': { schema: z.object({ data: ProjectBaselineSchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/workspaces/{workspaceId}/documents',
+  tags: ['Documents'],
+  summary: 'Listar documentos do workspace',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ workspaceId: z.string() }),
+    query: z.object({ projectId: z.string().optional(), isTemplate: z.string().optional(), search: z.string().optional() }),
+  },
+  responses: {
+    200: {
+      description: 'Lista de documentos',
+      content: { 'application/json': { schema: z.object({ data: z.array(DocumentSchema) }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/workspaces/{workspaceId}/documents/tree',
+  tags: ['Documents'],
+  summary: 'Obter árvore hierárquica de documentos',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ workspaceId: z.string() }),
+    query: z.object({ projectId: z.string().optional() }),
+  },
+  responses: {
+    200: {
+      description: 'Árvore de documentos',
+      content: { 'application/json': { schema: z.object({ data: z.array(z.any()) }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/documents',
+  tags: ['Documents'],
+  summary: 'Criar novo documento ou subpágina',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    body: { content: { 'application/json': { schema: CreateDocumentRequestSchema } } },
+  },
+  responses: {
+    201: {
+      description: 'Documento criado',
+      content: { 'application/json': { schema: z.object({ data: DocumentSchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/documents/{id}',
+  tags: ['Documents'],
+  summary: 'Obter detalhes do documento por ID',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Detalhes do documento',
+      content: { 'application/json': { schema: z.object({ data: DocumentSchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/api/v1/documents/{id}',
+  tags: ['Documents'],
+  summary: 'Atualizar documento',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: UpdateDocumentRequestSchema } } },
+  },
+  responses: {
+    200: {
+      description: 'Documento atualizado',
+      content: { 'application/json': { schema: z.object({ data: DocumentSchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/v1/documents/{id}',
+  tags: ['Documents'],
+  summary: 'Excluir documento (soft delete)',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    204: {
+      description: 'Documento excluído',
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/documents/{id}/favorite',
+  tags: ['Documents'],
+  summary: 'Alternar favorito do documento',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Status de favorito atualizado',
+      content: { 'application/json': { schema: z.object({ data: z.object({ isFavorite: z.boolean() }) }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/api/v1/documents/{id}/move',
+  tags: ['Documents'],
+  summary: 'Mover documento na árvore hierárquica',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: MoveDocumentRequestSchema } } },
+  },
+  responses: {
+    200: {
+      description: 'Documento movido com sucesso',
+      content: { 'application/json': { schema: z.object({ data: DocumentSchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/documents/{id}/versions',
+  tags: ['Document Versions'],
+  summary: 'Listar versões de um documento',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Histórico de versões',
+      content: { 'application/json': { schema: z.object({ data: z.array(DocumentVersionSchema) }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/documents/{id}/versions',
+  tags: ['Document Versions'],
+  summary: 'Salvar snapshot manual de versão',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: CreateDocumentVersionRequestSchema } } },
+  },
+  responses: {
+    201: {
+      description: 'Versão criada',
+      content: { 'application/json': { schema: z.object({ data: DocumentVersionSchema }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/documents/{id}/versions/{versionId}/restore',
+  tags: ['Document Versions'],
+  summary: 'Restaurar documento para uma versão anterior',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string(), versionId: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Versão restaurada',
+      content: { 'application/json': { schema: z.object({ data: z.any() }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/v1/documents/{id}/comments',
+  tags: ['Document Comments'],
+  summary: 'Listar comentários inline do documento',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      description: 'Comentários do documento',
+      content: { 'application/json': { schema: z.object({ data: z.array(DocumentCommentSchema) }) } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/v1/documents/{id}/comments',
+  tags: ['Document Comments'],
+  summary: 'Criar comentário inline no documento',
+  security: [{ [bearerAuth.name]: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: CreateDocumentCommentRequestSchema } } },
+  },
+  responses: {
+    201: {
+      description: 'Comentário criado',
+      content: { 'application/json': { schema: z.object({ data: DocumentCommentSchema }) } },
     },
   },
 });

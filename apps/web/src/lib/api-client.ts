@@ -11,6 +11,7 @@ import {
   CreateChecklistItemRequest,
   CreateChecklistRequest,
   CreateCommentRequest,
+  CreateDocumentRequest,
   CreateLabelRequest,
   CreateProjectRequest,
   CreateSavedViewRequest,
@@ -19,6 +20,10 @@ import {
   CreateWorkflowStatusRequest,
   CreateWorkspaceInviteRequest,
   CreateWorkspaceRequest,
+  DocumentCommentDto,
+  DocumentDto,
+  DocumentTreeNodeDto,
+  DocumentVersionDto,
   ForgotPasswordRequest,
   GanttProjectDataDto,
   LabelDto,
@@ -26,6 +31,7 @@ import {
   MeResponse,
   MessageResponse,
   MoveTaskRequest,
+  PredefinedTemplateDto,
   ProjectBaselineDto,
   ProjectDto,
   ProjectWorkloadSummaryDto,
@@ -36,6 +42,7 @@ import {
   TaskDto,
   TaskFilterQuery,
   UpdateChecklistItemRequest,
+  UpdateDocumentRequest,
   UpdateMemberRoleRequest,
   UpdateProjectRequest,
   UpdateTaskRequest,
@@ -643,6 +650,170 @@ export const ganttApi = {
   async deleteBaseline(projectId: string, baselineId: string) {
     return apiRequest<void>(
       `/projects/${encodeURIComponent(projectId)}/baselines/${encodeURIComponent(baselineId)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+  },
+};
+
+export const documentsApi = {
+  async list(
+    workspaceId: string,
+    params?: { projectId?: string; isTemplate?: boolean; search?: string },
+  ) {
+    const sp = new URLSearchParams();
+    if (params?.projectId) sp.set('projectId', params.projectId);
+    if (params?.isTemplate !== undefined) sp.set('isTemplate', String(params.isTemplate));
+    if (params?.search) sp.set('search', params.search);
+    const qs = sp.toString() ? `?${sp.toString()}` : '';
+
+    const res = await apiRequest<{ data: DocumentDto[] }>(
+      `/workspaces/${encodeURIComponent(workspaceId)}/documents${qs}`,
+    );
+    return res.data;
+  },
+
+  async getTree(workspaceId: string, projectId?: string) {
+    const qs = projectId ? `?projectId=${encodeURIComponent(projectId)}` : '';
+    const res = await apiRequest<{ data: DocumentTreeNodeDto[] }>(
+      `/workspaces/${encodeURIComponent(workspaceId)}/documents/tree${qs}`,
+    );
+    return res.data;
+  },
+
+  async getById(id: string) {
+    const res = await apiRequest<{ data: DocumentDto }>(
+      `/documents/${encodeURIComponent(id)}`,
+    );
+    return res.data;
+  },
+
+  async create(input: CreateDocumentRequest) {
+    const res = await apiRequest<{ data: DocumentDto }>('/documents', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return res.data;
+  },
+
+  async update(id: string, input: UpdateDocumentRequest) {
+    const res = await apiRequest<{ data: DocumentDto }>(
+      `/documents/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+    );
+    return res.data;
+  },
+
+  async move(id: string, parentId: string | null) {
+    const res = await apiRequest<{ data: DocumentDto }>(
+      `/documents/${encodeURIComponent(id)}/move`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ parentId }),
+      },
+    );
+    return res.data;
+  },
+
+  async delete(id: string) {
+    return apiRequest<void>(`/documents/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async toggleFavorite(id: string) {
+    const res = await apiRequest<{ data: { isFavorite: boolean } }>(
+      `/documents/${encodeURIComponent(id)}/favorite`,
+      {
+        method: 'POST',
+      },
+    );
+    return res.data;
+  },
+
+  async getTemplates(workspaceId: string) {
+    const res = await apiRequest<{
+      data: { predefined: PredefinedTemplateDto[]; custom: PredefinedTemplateDto[] };
+    }>(`/workspaces/${encodeURIComponent(workspaceId)}/documents/templates`);
+    return res.data;
+  },
+
+  async export(id: string, format: 'markdown' | 'html' | 'json') {
+    const url = `${API_BASE_URL}/documents/${encodeURIComponent(id)}/export?format=${format}`;
+    const token = useAuthStore.getState().accessToken;
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      throw new Error('Falha ao exportar documento');
+    }
+    return response.text();
+  },
+
+  async getVersions(id: string) {
+    const res = await apiRequest<{ data: DocumentVersionDto[] }>(
+      `/documents/${encodeURIComponent(id)}/versions`,
+    );
+    return res.data;
+  },
+
+  async createVersion(id: string, name: string) {
+    const res = await apiRequest<{ data: DocumentVersionDto }>(
+      `/documents/${encodeURIComponent(id)}/versions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      },
+    );
+    return res.data;
+  },
+
+  async restoreVersion(id: string, versionId: string) {
+    const res = await apiRequest<{ data: { message: string; document: DocumentDto } }>(
+      `/documents/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}/restore`,
+      {
+        method: 'POST',
+      },
+    );
+    return res.data;
+  },
+
+  async getComments(id: string) {
+    const res = await apiRequest<{ data: DocumentCommentDto[] }>(
+      `/documents/${encodeURIComponent(id)}/comments`,
+    );
+    return res.data;
+  },
+
+  async createComment(id: string, input: { body: unknown; selectedText?: string }) {
+    const res = await apiRequest<{ data: DocumentCommentDto }>(
+      `/documents/${encodeURIComponent(id)}/comments`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
+    return res.data;
+  },
+
+  async updateComment(commentId: string, input: { body?: unknown; resolved?: boolean }) {
+    const res = await apiRequest<{ data: DocumentCommentDto }>(
+      `/documents/comments/${encodeURIComponent(commentId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+    );
+    return res.data;
+  },
+
+  async deleteComment(commentId: string) {
+    return apiRequest<void>(
+      `/documents/comments/${encodeURIComponent(commentId)}`,
       {
         method: 'DELETE',
       },

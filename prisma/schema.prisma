@@ -84,6 +84,9 @@ model User {
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   sentInvites         WorkspaceInvite[]    @relation("InvitedByUser")
+  createdDocs         Document[]           @relation("DocAuthor")
+  documentFavorites   DocumentFavorite[]
+  docVersions         DocumentVersion[]
 
   @@map("users")
 }
@@ -375,16 +378,20 @@ model ChecklistItem {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  taskId    String?
-  docId     String?
-  authorId  String
-  body      Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String    @id @default(cuid())
+  taskId       String?
+  docId        String?
+  authorId     String
+  body         Json
+  selectedText String?
+  resolvedAt   DateTime?
+  resolvedById String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  task         Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  document     Document? @relation(fields: [docId], references: [id], onDelete: Cascade)
+  author       User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
   @@index([docId])
@@ -428,27 +435,69 @@ model TimeEntry {
 // -------------------------------------------------------------
 
 model Document {
-  id          String     @id @default(cuid())
-  workspaceId String
-  projectId   String?
-  parentId    String?
-  title       String
-  icon        String?
-  yjsState    Bytes?
-  contentJson Json?
-  deletedAt   DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id               String             @id @default(cuid())
+  workspaceId      String
+  projectId        String?
+  parentId         String?
+  title            String
+  icon             String?
+  yjsState         Bytes?
+  contentJson      Json?
+  isTemplate       Boolean            @default(false)
+  templateCategory String?
+  createdById      String?
+  deletedAt        DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
-  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  project     Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  parent      Document?  @relation("DocHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children    Document[] @relation("DocHierarchy")
+  workspace        Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project          Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parent           Document?          @relation("DocHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children         Document[]         @relation("DocHierarchy")
+  createdBy        User?              @relation("DocAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  versions         DocumentVersion[]
+  favorites        DocumentFavorite[]
+  comments         Comment[]
 
   @@index([workspaceId])
   @@index([projectId])
+  @@index([parentId])
+  @@index([isTemplate])
   @@index([deletedAt])
   @@map("documents")
+}
+
+model DocumentVersion {
+  id            String    @id @default(cuid())
+  docId         String
+  versionNumber Int
+  name          String?
+  contentJson   Json?
+  yjsState      Bytes?
+  createdById   String?
+  createdAt     DateTime  @default(now())
+
+  document      Document  @relation(fields: [docId], references: [id], onDelete: Cascade)
+  createdBy     User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([docId, versionNumber])
+  @@index([docId])
+  @@map("document_versions")
+}
+
+model DocumentFavorite {
+  id         String   @id @default(cuid())
+  userId     String
+  docId      String
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document   Document @relation(fields: [docId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, docId])
+  @@index([userId])
+  @@index([docId])
+  @@map("document_favorites")
 }
 
 model Whiteboard {

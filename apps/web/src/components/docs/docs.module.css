@@ -1,0 +1,286 @@
+.docLayout {
+  display: flex;
+  height: calc(100vh - 64px);
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--mui-palette-background-default);
+}
+
+.sidebar {
+  width: 280px;
+  min-width: 240px;
+  max-width: 360px;
+  border-right: 1px solid var(--mui-palette-divider);
+  background-color: var(--mui-palette-background-paper);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+
+.mainContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--mui-palette-background-default);
+}
+
+.editorWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.editorScrollArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 60px 120px 60px;
+}
+
+.editorContainer {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* TipTap ProseMirror Core Styles */
+.editorContainer :global(.ProseMirror) {
+  outline: none;
+  min-height: 400px;
+  font-family: inherit;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: inherit;
+}
+
+.editorContainer :global(.ProseMirror p.is-editor-empty:first-child::before) {
+  color: #94a3b8;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.editorContainer :global(.ProseMirror h1) {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.025em;
+}
+
+.editorContainer :global(.ProseMirror h2) {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.editorContainer :global(.ProseMirror h3) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.editorContainer :global(.ProseMirror p) {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.editorContainer :global(.ProseMirror blockquote) {
+  border-left: 4px solid #6366f1;
+  padding-left: 1rem;
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+  color: #475569;
+}
+
+.editorContainer :global(.ProseMirror hr) {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 2rem 0;
+}
+
+.editorContainer :global(.ProseMirror code) {
+  background-color: rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+  padding: 0.2em 0.4em;
+  font-size: 0.875em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.editorContainer :global(.ProseMirror pre) {
+  background: #1e293b;
+  color: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.editorContainer :global(.ProseMirror pre code) {
+  color: inherit;
+  padding: 0;
+  background: none;
+  font-size: 0.9rem;
+}
+
+/* Listas e TaskLists */
+.editorContainer :global(.ProseMirror ul),
+.editorContainer :global(.ProseMirror ol) {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.editorContainer :global(.ProseMirror ul[data-type="taskList"]) {
+  list-style: none;
+  padding: 0;
+}
+
+.editorContainer :global(.ProseMirror li[data-type="taskItem"]) {
+  display: flex;
+  align-items: flex-start;
+  margin: 0.25rem 0;
+}
+
+.editorContainer :global(.ProseMirror li[data-type="taskItem"] > label) {
+  margin-right: 0.5rem;
+  user-select: none;
+  cursor: pointer;
+  margin-top: 0.25rem;
+}
+
+.editorContainer :global(.ProseMirror li[data-type="taskItem"] > div) {
+  flex: 1;
+}
+
+.editorContainer :global(.ProseMirror li[data-type="taskItem"][data-checked="true"] > div) {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* Tabelas TipTap */
+.editorContainer :global(.ProseMirror table) {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.editorContainer :global(.ProseMirror td),
+.editorContainer :global(.ProseMirror th) {
+  min-width: 100px;
+  border: 1px solid #cbd5e1;
+  padding: 8px 12px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.editorContainer :global(.ProseMirror th) {
+  font-weight: 700;
+  background-color: rgba(148, 163, 184, 0.15);
+  text-align: left;
+}
+
+.editorContainer :global(.ProseMirror .selectedCell:after) {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(99, 102, 241, 0.15);
+  pointer-events: none;
+}
+
+/* Callouts */
+.editorContainer :global(.tiptap-callout) {
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border-left: 4px solid;
+}
+
+.editorContainer :global(.tiptap-callout-info) {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-left-color: #3b82f6;
+}
+
+.editorContainer :global(.tiptap-callout-success) {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-left-color: #10b981;
+}
+
+.editorContainer :global(.tiptap-callout-warning) {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-left-color: #f59e0b;
+}
+
+.editorContainer :global(.tiptap-callout-danger) {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-left-color: #ef4444;
+}
+
+/* Cursores Remotos Yjs (Awareness) */
+.editorContainer :global(.collaboration-cursor__caret) {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 2px solid #0d9488;
+  border-right: none;
+  word-break: normal;
+  pointer-events: none;
+}
+
+.editorContainer :global(.collaboration-cursor__label) {
+  position: absolute;
+  top: -1.4em;
+  left: -1px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  user-select: none;
+  color: #fff;
+  padding: 1px 4px;
+  border-radius: 3px 3px 3px 0;
+  white-space: nowrap;
+}
+
+/* Estilos de Impressão e Exportação para PDF */
+@media print {
+  .sidebar,
+  .toolbar {
+    display: none !important;
+  }
+
+  .docLayout {
+    height: auto !important;
+    display: block !important;
+    background: #fff !important;
+  }
+
+  .editorScrollArea {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .editorContainer {
+    max-width: 100% !important;
+  }
+
+  .editorContainer :global(.ProseMirror) {
+    color: #000 !important;
+  }
+}

@@ -15,6 +15,7 @@ export * from './schemas/dependency.js';
 export * from './schemas/baseline.js';
 export * from './schemas/gantt.js';
 export * from './schemas/workload.js';
+export * from './schemas/document.js';
 export * from './utils/date-math.js';
 export * from './utils/cycle-detector.js';
 export * from './utils/cpm.js';

@@ -20,7 +20,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import GestureIcon from '@mui/icons-material/Gesture';
 import GroupIcon from '@mui/icons-material/Group';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -30,7 +30,7 @@ import {
   WorkspaceRole,
 } from '@fluxo/shared';
 import { useAuthStore } from '@/features/auth/auth-store';
-import { projectsApi, tasksApi, workspacesApi } from '@/lib/api-client';
+import { documentsApi, projectsApi, tasksApi, workspacesApi } from '@/lib/api-client';
 import {
   ActiveTaskFilters,
   TaskFiltersBar,
@@ -49,6 +49,7 @@ import { PresenceBar } from '@/features/realtime/PresenceBar';
 export default function ProjectTasksPage() {
   const params = useParams<{ projectId: string }>();
   const projectId = String(params?.projectId || '');
+  const router = useRouter();
 
   const t = useTranslations('tasks');
   const tProjects = useTranslations('projects');
@@ -77,7 +78,7 @@ export default function ProjectTasksPage() {
     assigneeId: '',
     groupBy: 'status',
   });
-  const [activeTab, setActiveTab] = useState<'list' | 'kanban' | 'gantt' | 'calendar' | 'workload'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'kanban' | 'gantt' | 'calendar' | 'workload' | 'docs'>('list');
   const [activeSavedViewId, setActiveSavedViewId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
@@ -89,8 +90,8 @@ export default function ProjectTasksPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      const view = urlParams.get('view') as 'list' | 'kanban' | 'gantt' | 'calendar' | 'workload' | null;
-      if (view && ['list', 'kanban', 'gantt', 'calendar', 'workload'].includes(view)) {
+      const view = urlParams.get('view') as 'list' | 'kanban' | 'gantt' | 'calendar' | 'workload' | 'docs' | null;
+      if (view && ['list', 'kanban', 'gantt', 'calendar', 'workload', 'docs'].includes(view)) {
         setActiveTab(view);
       }
     }
@@ -98,7 +99,7 @@ export default function ProjectTasksPage() {
 
   const handleTabChange = (
     _: React.SyntheticEvent,
-    nextTab: 'list' | 'kanban' | 'gantt' | 'calendar' | 'workload',
+    nextTab: 'list' | 'kanban' | 'gantt' | 'calendar' | 'workload' | 'docs',
   ) => {
     setActiveTab(nextTab);
     if (typeof window !== 'undefined') {
@@ -121,6 +122,12 @@ export default function ProjectTasksPage() {
   });
 
   const workspaceId = project?.workspaceId || activeWorkspace?.id || '';
+
+  const { data: projectDocs = [], refetch: refetchProjectDocs } = useQuery({
+    queryKey: ['project-docs', projectId],
+    queryFn: () => documentsApi.list(workspaceId, { projectId }),
+    enabled: Boolean(workspaceId) && activeTab === 'docs',
+  });
 
   const {
     data: tasks = [],
@@ -410,10 +417,10 @@ export default function ProjectTasksPage() {
           />
           <Tab
             value="docs"
-            disabled
             icon={<DescriptionIcon fontSize="small" />}
             iconPosition="start"
             label={t('viewDocs')}
+            data-testid="tab-docs"
           />
           <Tab
             value="whiteboard"
@@ -492,6 +499,99 @@ export default function ProjectTasksPage() {
         />
       ) : activeTab === 'workload' ? (
         <WorkloadView projectId={projectId} />
+      ) : activeTab === 'docs' ? (
+        <Box sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Documentos do Projeto ({projectDocs.length})
+            </Typography>
+            {canWrite && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={async () => {
+                  try {
+                    const newDoc = await documentsApi.create({
+                      workspaceId,
+                      projectId,
+                      title: 'Nova Página do Projeto',
+                    });
+                    refetchProjectDocs();
+                    router.push(`/${locale}/docs/${newDoc.id}`);
+                  } catch (err) {
+                    console.error('Erro ao criar doc do projeto:', err);
+                  }
+                }}
+                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 2 }}
+              >
+                Novo Documento
+              </Button>
+            )}
+          </Box>
+
+          {projectDocs.length === 0 ? (
+            <Box sx={{ p: 4, textAlign: 'center', bgcolor: 'background.paper', borderRadius: 2 }}>
+              <DescriptionIcon color="action" sx={{ fontSize: 48, mb: 1 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                Nenhum documento associado a este projeto
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Crie especificações, atas e documentações técnicas vinculadas a este projeto.
+              </Typography>
+              {canWrite && (
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={async () => {
+                    const newDoc = await documentsApi.create({
+                      workspaceId,
+                      projectId,
+                      title: 'Documentação do Projeto',
+                    });
+                    refetchProjectDocs();
+                    router.push(`/${locale}/docs/${newDoc.id}`);
+                  }}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                  Criar Primeiro Documento
+                </Button>
+              )}
+            </Box>
+          ) : (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
+              {projectDocs.map((d) => (
+                <Box
+                  key={d.id}
+                  data-testid={`project-doc-card-${d.id}`}
+                  onClick={() => router.push(`/${locale}/docs/${d.id}`)}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'background.paper',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                      borderColor: 'primary.main',
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                    <Typography sx={{ fontSize: '1.5rem' }}>{d.icon || '📄'}</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {d.title}
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Atualizado em {new Date(d.updatedAt).toLocaleDateString('pt-BR')}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
       ) : (
         <TaskListView
           tasks={tasks}

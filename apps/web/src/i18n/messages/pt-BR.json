@@ -345,5 +345,19 @@
     "checkHealth": "Verificar Endpoint /health",
     "nextPhasesTitle": "Próximas Fases",
     "nextPhasesDesc": "A Fase 3 implementará o quadro Kanban interativo com dnd-kit, limites WIP, swimlanes e sincronização em tempo real via Socket.IO."
+  },
+  "docs": {
+    "title": "Documentos & Wiki",
+    "newPage": "Nova Página",
+    "pages": "Páginas",
+    "favorites": "Favoritos",
+    "templates": "Modelos e Templates",
+    "searchPlaceholder": "Buscar páginas...",
+    "versions": "Histórico de Versões",
+    "comments": "Comentários no Documento",
+    "export": "Exportar Documento",
+    "syncConnected": "Sincronizado",
+    "syncSaving": "Salvando...",
+    "syncOffline": "Offline"
   }
 }
